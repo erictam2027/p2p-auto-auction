@@ -1,4 +1,4 @@
-import { canAccessDashboard } from "@/lib/auth/profile";
+import { isVerifiedDealer } from "@/lib/auth/profile";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
@@ -36,9 +36,8 @@ export async function SiteHeader() {
         .eq("id", user.id)
         .maybeSingle()
     : { data: null };
-  const dealerHref = canAccessDashboard(profile)
-    ? "/dashboard"
-    : "/dealer-application";
+
+  const isVerifiedDealerUser = Boolean(user && isVerifiedDealer(profile));
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
@@ -62,12 +61,14 @@ export async function SiteHeader() {
             >
               Browse Auctions
             </Link>
-            <Link
-              href={dealerHref}
-              className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-            >
-              Dealer Dashboard
-            </Link>
+            {isVerifiedDealerUser ? (
+              <Link
+                href="/dashboard"
+                className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+              >
+                Dealer Dashboard
+              </Link>
+            ) : null}
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
@@ -84,14 +85,16 @@ export async function SiteHeader() {
                 Sign In
               </Button>
             )}
-            <Button
-              size="sm"
-              className="hidden bg-slate-900 text-white hover:bg-slate-800 sm:inline-flex"
-              nativeButton={false}
-              render={<Link href="/sell" />}
-            >
-              Sell / Trade
-            </Button>
+            {!isVerifiedDealerUser ? (
+              <Button
+                size="sm"
+                className="hidden bg-slate-900 text-white hover:bg-slate-800 sm:inline-flex"
+                nativeButton={false}
+                render={<Link href="/dealer-application" />}
+              >
+                Apply as Dealer
+              </Button>
+            ) : null}
             <Button
               variant="ghost"
               size="icon-sm"
