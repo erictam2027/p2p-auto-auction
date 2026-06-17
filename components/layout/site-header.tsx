@@ -28,6 +28,17 @@ export async function SiteHeader() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const { data: profile } = user
+    ? await supabase
+        .from("profiles")
+        .select("role, verification_status")
+        .eq("id", user.id)
+        .maybeSingle()
+    : { data: null };
+  const dealerHref =
+    profile?.role === "dealer" && profile.verification_status === "verified"
+      ? "/dashboard"
+      : "/dealer-application";
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
@@ -52,7 +63,7 @@ export async function SiteHeader() {
               Browse Auctions
             </Link>
             <Link
-              href="/dashboard"
+              href={dealerHref}
               className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
             >
               Dealer Dashboard

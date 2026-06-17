@@ -182,7 +182,7 @@ export function LoginForm({ defaultTab, error, message, next }: LoginFormProps) 
 
         <p className="mt-4 text-center text-sm text-slate-600">
           Dealer account?{" "}
-          <Link href="/dealers/apply" className="font-medium text-slate-900 hover:underline">
+          <Link href="/dealer-application" className="font-medium text-slate-900 hover:underline">
             Apply as Dealer
           </Link>
         </p>
