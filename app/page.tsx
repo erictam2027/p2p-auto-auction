@@ -3,7 +3,7 @@ import { AuctionCard } from "@/components/auctions/auction-card";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TrustBadgeGroup } from "@/components/trust/trust-badge";
 import { Button } from "@/components/ui/button";
-import { featuredAuction, type TrendingAuction } from "@/lib/data/trending-auctions";
+import type { TrendingAuction } from "@/lib/data/trending-auctions";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatMileage } from "@/lib/utils/format";
 import { ArrowRight, Clock, MapPin } from "lucide-react";
@@ -104,115 +104,128 @@ async function getActiveVehicles() {
 
 export default async function Home() {
   const activeVehicles = await getActiveVehicles();
-  const featuredTitle = `${featuredAuction.year} ${featuredAuction.make} ${featuredAuction.model}`;
+  const featuredVehicle = activeVehicles[0];
+  const featuredTitle = featuredVehicle
+    ? `${featuredVehicle.year} ${featuredVehicle.make} ${featuredVehicle.model}`
+    : "";
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-slate-50 text-slate-900">
       <SiteHeader />
 
       <main className="flex-1">
-        {/* Hero / Featured listing */}
-        <section className="border-b border-slate-200 bg-white">
-          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
-              Featured Auction
-            </p>
+        {featuredVehicle ? (
+          <section className="border-b border-slate-200 bg-white">
+            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+                Featured Auction
+              </p>
 
-            <div className="mt-6 grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
-              <Link
-                href={`/auctions/${featuredAuction.id}`}
-                className="block overflow-hidden rounded-md border border-slate-200 bg-slate-100"
-              >
-                <div className="aspect-[4/3]">
-                  <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
-                    <svg
-                      viewBox="0 0 200 80"
-                      className="h-14 w-36 text-slate-300"
-                      fill="currentColor"
-                      aria-hidden
-                    >
-                      <path d="M12 52h14l6-18h96l6 18h14l-10-28H22L12 52zm22-12h112l-4-12H38l-4 12z" />
-                      <circle cx="44" cy="58" r="10" />
-                      <circle cx="156" cy="58" r="10" />
-                    </svg>
-                    <p className="text-sm text-slate-600">Featured vehicle photo</p>
+              <div className="mt-6 grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
+                <Link
+                  href={`/auctions/${featuredVehicle.id}`}
+                  className="block overflow-hidden rounded-md border border-slate-200 bg-slate-100"
+                >
+                  <div className="aspect-[4/3]">
+                    {featuredVehicle.imageUrl ? (
+                      <div
+                        aria-label={featuredTitle}
+                        role="img"
+                        className="h-full w-full bg-cover bg-center"
+                        style={{ backgroundImage: `url(${featuredVehicle.imageUrl})` }}
+                      />
+                    ) : (
+                      <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
+                        <svg
+                          viewBox="0 0 200 80"
+                          className="h-14 w-36 text-slate-300"
+                          fill="currentColor"
+                          aria-hidden
+                        >
+                          <path d="M12 52h14l6-18h96l6 18h14l-10-28H22L12 52zm22-12h112l-4-12H38l-4 12z" />
+                          <circle cx="44" cy="58" r="10" />
+                          <circle cx="156" cy="58" r="10" />
+                        </svg>
+                        <p className="text-sm text-slate-600">Featured vehicle photo</p>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </Link>
+                </Link>
 
-              <div className="flex flex-col gap-6">
-                <div>
-                  <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-                    {featuredTitle}
-                  </h1>
-                  <p className="mt-1 text-lg text-slate-600">{featuredAuction.trim}</p>
-                  <p className="mt-4 text-sm leading-relaxed text-slate-600">
-                    Licensed-dealer escrow, federal title verification, and structured
-                    seller disclosures on every listing.
-                  </p>
-                </div>
-
-                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
-                  <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
-                    <dt className="text-xs text-slate-600">Current bid</dt>
-                    <dd className="mt-1 text-lg font-semibold text-slate-900">
-                      {formatCurrency(featuredAuction.currentBidCents)}
-                    </dd>
+                <div className="flex flex-col gap-6">
+                  <div>
+                    <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                      {featuredTitle}
+                    </h1>
+                    <p className="mt-1 text-lg text-slate-600">{featuredVehicle.trim}</p>
+                    <p className="mt-4 text-sm leading-relaxed text-slate-600">
+                      Licensed-dealer escrow, federal title verification, and structured
+                      seller disclosures on every listing.
+                    </p>
                   </div>
-                  <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
-                    <dt className="text-xs text-slate-600">Active bids</dt>
-                    <dd className="mt-1 text-lg font-semibold text-slate-900">
-                      {featuredAuction.bidCount}
-                    </dd>
-                  </div>
-                  <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
-                    <dt className="text-xs text-slate-600">Mileage</dt>
-                    <dd className="mt-1 text-lg font-semibold text-slate-900">
-                      {formatMileage(featuredAuction.mileage)} mi
-                    </dd>
-                  </div>
-                  <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
-                    <dt className="text-xs text-slate-600">Ends in</dt>
-                    <dd className="mt-1 flex items-center gap-1.5 text-lg font-semibold text-slate-900">
-                      <Clock className="size-4 shrink-0 text-slate-500" />
-                      {featuredAuction.endsIn}
-                    </dd>
-                  </div>
-                </dl>
 
-                <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                  <MapPin className="size-4 shrink-0 text-slate-500" />
-                  {featuredAuction.location}
-                </div>
+                  <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
+                    <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                      <dt className="text-xs text-slate-600">Current bid</dt>
+                      <dd className="mt-1 text-lg font-semibold text-slate-900">
+                        {formatCurrency(featuredVehicle.currentBidCents)}
+                      </dd>
+                    </div>
+                    <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                      <dt className="text-xs text-slate-600">Active bids</dt>
+                      <dd className="mt-1 text-lg font-semibold text-slate-900">
+                        {featuredVehicle.bidCount}
+                      </dd>
+                    </div>
+                    <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                      <dt className="text-xs text-slate-600">Mileage</dt>
+                      <dd className="mt-1 text-lg font-semibold text-slate-900">
+                        {formatMileage(featuredVehicle.mileage)} mi
+                      </dd>
+                    </div>
+                    <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                      <dt className="text-xs text-slate-600">Ends in</dt>
+                      <dd className="mt-1 flex items-center gap-1.5 text-lg font-semibold text-slate-900">
+                        <Clock className="size-4 shrink-0 text-slate-500" />
+                        {featuredVehicle.endsIn}
+                      </dd>
+                    </div>
+                  </dl>
 
-                <TrustBadgeGroup
-                  nmvtisVerified={featuredAuction.nmvtisVerified}
-                  inspectionAvailable={featuredAuction.inspectionAvailable}
-                />
+                  <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                    <MapPin className="size-4 shrink-0 text-slate-500" />
+                    {featuredVehicle.location}
+                  </div>
 
-                <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row">
-                  <Link href={`/auctions/${featuredAuction.id}`}>
-                    <Button
-                      size="lg"
-                      className="h-11 w-full bg-slate-900 px-6 text-white hover:bg-slate-800 sm:w-auto"
-                    >
-                      Place Bid
-                    </Button>
-                  </Link>
-                  <Link href={`/auctions/${featuredAuction.id}`}>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="h-11 w-full border-slate-300 bg-white px-6 text-slate-900 hover:bg-slate-50 sm:w-auto"
-                    >
-                      View Listing
-                    </Button>
-                  </Link>
+                  <TrustBadgeGroup
+                    nmvtisVerified={featuredVehicle.nmvtisVerified}
+                    inspectionAvailable={featuredVehicle.inspectionAvailable}
+                  />
+
+                  <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row">
+                    <Link href={`/auctions/${featuredVehicle.id}`}>
+                      <Button
+                        size="lg"
+                        className="h-11 w-full bg-slate-900 px-6 text-white hover:bg-slate-800 sm:w-auto"
+                      >
+                        Place Bid
+                      </Button>
+                    </Link>
+                    <Link href={`/auctions/${featuredVehicle.id}`}>
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="h-11 w-full border-slate-300 bg-white px-6 text-slate-900 hover:bg-slate-50 sm:w-auto"
+                      >
+                        View Listing
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
 
         {/* Trust strip */}
         <section className="border-b border-slate-200 bg-white">
