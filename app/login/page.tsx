@@ -1,5 +1,8 @@
 import { SiteHeader } from "@/components/layout/site-header";
 import { LoginForm } from "@/components/auth/login-form";
+import { getPostLoginPath } from "@/lib/auth/profile";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Sign In | ApexAuction",
@@ -13,6 +16,21 @@ export default async function LoginPage({
   searchParams: Promise<{ tab?: string; error?: string; message?: string; next?: string }>;
 }) {
   const params = await searchParams;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, verification_status")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    redirect(getPostLoginPath(profile, params.next));
+  }
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-slate-50 text-slate-900">

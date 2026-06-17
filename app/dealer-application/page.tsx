@@ -1,3 +1,4 @@
+import { isAdmin } from "@/lib/auth/profile";
 import { submitDealerApplication } from "@/app/dealer-application/actions";
 import { SiteHeader } from "@/components/layout/site-header";
 import { Button } from "@/components/ui/button";
@@ -166,6 +167,10 @@ export default async function DealerApplicationPage({
     .select("role, verification_status, dealership_name, dealer_license")
     .eq("id", user.id)
     .maybeSingle<Profile>();
+
+  if (isAdmin(profile)) {
+    redirect("/dashboard");
+  }
 
   if (profile?.role === "dealer" && profile.verification_status === "verified") {
     redirect("/dashboard");

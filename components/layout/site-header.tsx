@@ -1,3 +1,4 @@
+import { canAccessDashboard } from "@/lib/auth/profile";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
@@ -35,10 +36,9 @@ export async function SiteHeader() {
         .eq("id", user.id)
         .maybeSingle()
     : { data: null };
-  const dealerHref =
-    profile?.role === "dealer" && profile.verification_status === "verified"
-      ? "/dashboard"
-      : "/dealer-application";
+  const dealerHref = canAccessDashboard(profile)
+    ? "/dashboard"
+    : "/dealer-application";
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">

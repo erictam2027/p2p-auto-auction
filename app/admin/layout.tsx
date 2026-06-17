@@ -1,9 +1,8 @@
-import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
-import { canAccessDashboard } from "@/lib/auth/profile";
+import { isAdmin } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-export default async function DashboardLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -14,7 +13,7 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login?next=/dashboard");
+    redirect("/login?next=/admin");
   }
 
   const { data: profile } = await supabase
@@ -23,14 +22,13 @@ export default async function DashboardLayout({
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!canAccessDashboard(profile)) {
-    redirect("/dealer-application");
+  if (!isAdmin(profile)) {
+    redirect("/profile");
   }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <DashboardSidebar />
-      <div className="lg:pl-64">{children}</div>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">{children}</div>
     </div>
   );
 }

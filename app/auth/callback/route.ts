@@ -1,3 +1,4 @@
+import { getPostLoginPath } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -9,7 +10,23 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
+
     if (!error) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role, verification_status")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        const destination = getPostLoginPath(profile, next);
+        return NextResponse.redirect(`${origin}${destination}`);
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

@@ -96,9 +96,19 @@ export function LoginForm({ defaultTab, error, message, next }: LoginFormProps) 
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-slate-900">
-              Password
-            </label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className="text-sm font-medium text-slate-900">
+                Password
+              </label>
+              {!isSignUp ? (
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-slate-600 hover:text-slate-900 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              ) : null}
+            </div>
             <Input
               id="password"
               name="password"

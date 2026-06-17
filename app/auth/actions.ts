@@ -1,41 +1,94 @@
 "use server";
 
+import { getPostLoginPath } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+
+async function fetchProfile(userId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("role, verification_status")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return data;
+}
+
+async function redirectAfterAuth(next?: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const profile = await fetchProfile(user.id);
+  revalidatePath("/", "layout");
+  redirect(getPostLoginPath(profile, next));
+}
 
 export async function signInWithEmail(formData: FormData) {
   const email = String(formData.get("email"));
   const password = String(formData.get("password"));
-  const next = String(formData.get("next") || "/");
+  const next = String(formData.get("next") || "");
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    return redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
 
-  revalidatePath("/", "layout");
-  redirect(next);
+  await redirectAfterAuth(next || undefined);
 }
 
 export async function signUpWithEmail(formData: FormData) {
   const email = String(formData.get("email"));
   const password = String(formData.get("password"));
+  const next = String(formData.get("next") || "");
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/auth/callback` },
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/auth/callback`,
+    },
   });
 
   if (error) {
-    return redirect(`/login?tab=signup&error=${encodeURIComponent(error.message)}`);
+    redirect(`/login?tab=signup&error=${encodeURIComponent(error.message)}`);
   }
 
-  return redirect("/login?tab=signup&message=Check+your+email+to+confirm+your+account.");
+  if (!data.session) {
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      redirect(
+        `/login?tab=signup&error=${encodeURIComponent(signInError.message)}`,
+      );
+    }
+  }
+
+  if (data.user) {
+    await supabase.from("profiles").upsert(
+      {
+        id: data.user.id,
+        role: "consumer",
+        verification_status: "unverified",
+      },
+      { onConflict: "id" },
+    );
+  }
+
+  await redirectAfterAuth(next || undefined);
 }
 
 export async function signOut() {
@@ -50,12 +103,12 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/auth/callback`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/auth/callback`,
     },
   });
 
   if (error || !data.url) {
-    return redirect("/login?error=Could+not+connect+to+Google.");
+    redirect("/login?error=Could+not+connect+to+Google.");
   }
 
   redirect(data.url);
