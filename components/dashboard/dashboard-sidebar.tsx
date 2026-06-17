@@ -71,7 +71,7 @@ export function DashboardSidebar() {
         </div>
         <Link
           href="/"
-          className="mt-3 flex items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+          className="mt-3 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
         >
           <ArrowLeft className="size-4 shrink-0" />
           Return to Marketplace
