@@ -2,11 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  signInWithEmail,
-  signInWithGoogle,
-  signUpWithEmail,
-} from "@/app/auth/actions";
+import { signInWithEmail, signUpWithEmail } from "@/app/auth/actions";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -19,7 +16,44 @@ type LoginFormProps = {
 
 export function LoginForm({ defaultTab, error, message, next }: LoginFormProps) {
   const [tab, setTab] = useState<"signin" | "signup">(defaultTab);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const isSignUp = tab === "signup";
+
+  async function handleGoogleSignIn() {
+    setGoogleError(null);
+    setIsGoogleLoading(true);
+
+    const supabase = createClient();
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+
+    if (next) {
+      callbackUrl.searchParams.set("next", next);
+    }
+
+    const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: callbackUrl.toString(),
+      },
+    });
+
+    if (oauthError) {
+      setGoogleError(oauthError.message);
+      setIsGoogleLoading(false);
+      return;
+    }
+
+    if (data.url) {
+      window.location.href = data.url;
+      return;
+    }
+
+    setGoogleError("Could not connect to Google.");
+    setIsGoogleLoading(false);
+  }
+
+  const displayError = error ? decodeURIComponent(error) : googleError;
 
   return (
     <div className="w-full max-w-md">
@@ -62,9 +96,9 @@ export function LoginForm({ defaultTab, error, message, next }: LoginFormProps) 
           </button>
         </div>
 
-        {error ? (
+        {displayError ? (
           <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {decodeURIComponent(error)}
+            {displayError}
           </div>
         ) : null}
 
@@ -136,10 +170,12 @@ export function LoginForm({ defaultTab, error, message, next }: LoginFormProps) 
           <span className="h-px flex-1 bg-slate-200" />
         </div>
 
-        <form action={signInWithGoogle} className="mt-4">
+        <div className="mt-4">
           <Button
-            type="submit"
+            type="button"
             variant="outline"
+            disabled={isGoogleLoading}
+            onClick={() => void handleGoogleSignIn()}
             className="h-11 w-full border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
           >
             <svg viewBox="0 0 24 24" className="size-4" aria-hidden>
@@ -162,7 +198,7 @@ export function LoginForm({ defaultTab, error, message, next }: LoginFormProps) 
             </svg>
             Continue with Google
           </Button>
-        </form>
+        </div>
 
         <div className="mt-6 text-center text-sm text-slate-600">
           {!isSignUp ? (
