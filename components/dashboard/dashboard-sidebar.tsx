@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
+  ArrowLeft,
   Car,
   Gavel,
   LayoutDashboard,
@@ -68,6 +69,13 @@ export function DashboardSidebar() {
           <p className="text-xs font-medium text-slate-900">Pacific Coast Motors</p>
           <p className="text-[11px] text-slate-600">Licensed Dealer · CA</p>
         </div>
+        <Link
+          href="/"
+          className="mt-3 flex items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+        >
+          <ArrowLeft className="size-4 shrink-0" />
+          Return to Marketplace
+        </Link>
       </div>
     </aside>
   );

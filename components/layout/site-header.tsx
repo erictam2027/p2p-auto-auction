@@ -69,9 +69,9 @@ export function SiteHeader() {
               size="sm"
               className="hidden bg-slate-900 text-white hover:bg-slate-800 sm:inline-flex"
               nativeButton={false}
-              render={<Link href="/dealers/apply" />}
+              render={<Link href="/sell" />}
             >
-              Apply as Dealer
+              Sell / Trade
             </Button>
             <Button
               variant="ghost"
