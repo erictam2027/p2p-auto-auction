@@ -19,19 +19,47 @@ type LoginFormProps = {
 
 export function LoginForm({ defaultTab, error, message, next }: LoginFormProps) {
   const [tab, setTab] = useState<"signin" | "signup">(defaultTab);
+  const isSignUp = tab === "signup";
 
   return (
     <div className="w-full max-w-md">
       <div className="rounded-md border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="text-center">
           <h1 className="text-2xl font-semibold text-slate-900">
-            {tab === "signin" ? "Welcome back" : "Create account"}
+            {isSignUp ? "Create your account" : "Sign in to your account"}
           </h1>
           <p className="mt-2 text-sm text-slate-600">
-            {tab === "signin"
-              ? "Sign in to bid on verified auctions."
-              : "Join ApexAuction to start bidding."}
+            {isSignUp
+              ? "Register to bid on verified auctions with escrow protection."
+              : "Access your verified auctions, bids, and account dashboard."}
           </p>
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 rounded-md border border-slate-200 bg-slate-50 p-1">
+          <button
+            type="button"
+            aria-pressed={!isSignUp}
+            onClick={() => setTab("signin")}
+            className={`rounded-sm px-3 py-2 text-sm font-medium transition ${
+              !isSignUp
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            aria-pressed={isSignUp}
+            onClick={() => setTab("signup")}
+            className={`rounded-sm px-3 py-2 text-sm font-medium transition ${
+              isSignUp
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Create Account
+          </button>
         </div>
 
         {error ? (
@@ -47,7 +75,7 @@ export function LoginForm({ defaultTab, error, message, next }: LoginFormProps) 
         ) : null}
 
         <form
-          action={tab === "signin" ? signInWithEmail : signUpWithEmail}
+          action={isSignUp ? signUpWithEmail : signInWithEmail}
           className="mt-6 space-y-4"
         >
           {next ? <input type="hidden" name="next" value={next} /> : null}
@@ -75,9 +103,9 @@ export function LoginForm({ defaultTab, error, message, next }: LoginFormProps) 
               id="password"
               name="password"
               type="password"
-              autoComplete={tab === "signin" ? "current-password" : "new-password"}
+              autoComplete={isSignUp ? "new-password" : "current-password"}
               required
-              placeholder={tab === "signin" ? "Enter your password" : "Create a password (8+ chars)"}
+              placeholder={isSignUp ? "Create a password (8+ chars)" : "Enter your password"}
               className="h-11 border-slate-300 bg-white text-slate-900"
             />
           </div>
@@ -86,13 +114,15 @@ export function LoginForm({ defaultTab, error, message, next }: LoginFormProps) 
             type="submit"
             className="h-11 w-full bg-slate-900 text-white hover:bg-slate-800"
           >
-            {tab === "signin" ? "Sign In" : "Create Account"}
+            {isSignUp ? "Create Account" : "Sign In"}
           </Button>
         </form>
 
         <div className="mt-4 flex items-center gap-3">
           <span className="h-px flex-1 bg-slate-200" />
-          <span className="text-xs text-slate-500">or</span>
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Or continue with
+          </span>
           <span className="h-px flex-1 bg-slate-200" />
         </div>
 
@@ -120,12 +150,12 @@ export function LoginForm({ defaultTab, error, message, next }: LoginFormProps) 
                 fill="#EA4335"
               />
             </svg>
-            Sign in with Google
+            Continue with Google
           </Button>
         </form>
 
         <div className="mt-6 text-center text-sm text-slate-600">
-          {tab === "signin" ? (
+          {!isSignUp ? (
             <>
               New to ApexAuction?{" "}
               <button

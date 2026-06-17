@@ -3,14 +3,109 @@ import { AuctionCard } from "@/components/auctions/auction-card";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TrustBadgeGroup } from "@/components/trust/trust-badge";
 import { Button } from "@/components/ui/button";
-import {
-  featuredAuction,
-  trendingAuctions,
-} from "@/lib/data/trending-auctions";
+import { featuredAuction, type TrendingAuction } from "@/lib/data/trending-auctions";
+import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatMileage } from "@/lib/utils/format";
 import { ArrowRight, Clock, MapPin } from "lucide-react";
 
-export default function Home() {
+type VehicleRow = Record<string, unknown>;
+
+function readString(row: VehicleRow, keys: string[], fallback = "") {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value;
+    }
+  }
+
+  return fallback;
+}
+
+function readNumber(row: VehicleRow, keys: string[], fallback = 0) {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  return fallback;
+}
+
+function readBoolean(row: VehicleRow, keys: string[], fallback = false) {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === "boolean") {
+      return value;
+    }
+  }
+
+  return fallback;
+}
+
+function isActiveVehicle(row: VehicleRow) {
+  const status = readString(row, ["status", "auction_status", "listing_status"]).toLowerCase();
+  if (status.length > 0) {
+    return ["active", "live", "listed"].includes(status);
+  }
+
+  if ("active" in row || "is_active" in row) {
+    return readBoolean(row, ["active", "is_active"], false);
+  }
+
+  return true;
+}
+
+function vehicleToAuction(vehicle: VehicleRow): TrendingAuction {
+  const id = readString(vehicle, ["id", "slug"]);
+  const currentBidCents = readNumber(
+    vehicle,
+    ["current_bid_cents", "currentBidCents", "starting_bid_cents", "price_cents"],
+    0,
+  );
+
+  return {
+    id,
+    year: readNumber(vehicle, ["year"], new Date().getFullYear()),
+    make: readString(vehicle, ["make"], "Vehicle"),
+    model: readString(vehicle, ["model"], "Listing"),
+    trim: readString(vehicle, ["trim", "variant"], "Verified auction"),
+    mileage: readNumber(vehicle, ["mileage", "odometer"], 0),
+    location: readString(vehicle, ["location", "city_state", "city"], "Location pending"),
+    currentBidCents,
+    bidCount: readNumber(vehicle, ["bid_count", "bidCount"], 0),
+    endsIn: readString(vehicle, ["ends_in", "endsIn"], "Coming soon"),
+    nmvtisVerified: readBoolean(vehicle, ["nmvtis_verified", "nmvtisVerified"], true),
+    inspectionAvailable: readBoolean(
+      vehicle,
+      ["inspection_available", "inspectionAvailable"],
+      false,
+    ),
+  };
+}
+
+async function getActiveVehicles() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("vehicles").select("*");
+
+  if (error) {
+    return [];
+  }
+
+  return (data ?? [])
+    .filter(isActiveVehicle)
+    .map(vehicleToAuction)
+    .filter((auction) => auction.id.length > 0);
+}
+
+export default async function Home() {
+  const activeVehicles = await getActiveVehicles();
   const featuredTitle = `${featuredAuction.year} ${featuredAuction.make} ${featuredAuction.model}`;
 
   return (
@@ -134,12 +229,12 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Trending Auctions */}
+        {/* Featured Auctions */}
         <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
           <div className="flex flex-col gap-3 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">
-                Trending Auctions
+                Featured Auctions
               </h2>
               <p className="mt-1 text-sm text-slate-600">
                 Live listings with verified titles and escrow-protected transactions.
@@ -154,11 +249,23 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-            {trendingAuctions.map((auction) => (
-              <AuctionCard key={auction.id} auction={auction} />
-            ))}
-          </div>
+          {activeVehicles.length > 0 ? (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+              {activeVehicles.map((auction) => (
+                <AuctionCard key={auction.id} auction={auction} />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-6 rounded-md border border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-sm">
+              <p className="text-sm font-medium text-slate-900">
+                New inventory arriving soon.
+              </p>
+              <p className="mt-2 text-sm text-slate-600">
+                Verified listings will appear here once sellers complete title and
+                inspection checks.
+              </p>
+            </div>
+          )}
         </section>
       </main>
 
