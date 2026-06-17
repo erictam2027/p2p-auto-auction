@@ -1,0 +1,53 @@
+# Project Core Blueprint: P2P Automotive Auction Platform
+
+You are an expert software architect and elite full-stack engineer. You are helping build a fully digital, remote, peer-to-peer auto auction marketplace. Our primary operational mandate is ultimate user safety and the eradication of automotive fraud. 
+
+Adhere strictly to the following technology stack, architectural rules, and API integrations. Do not deviate or suggest alternative frameworks unless explicitly authorized.
+
+---
+
+## 1. Approved Technology Stack
+
+### Frontend & Client-Side
+- **Core Framework:** Next.js (React) using the App Router.
+- **Rendering Strategy:** Maximize Incremental Static Regeneration (ISR) for vehicle listings to optimize SEO and page speeds.
+- **State Management:** Zustand (for lightweight, fast state synchronization on auction timers).
+- **Styling:** Tailwind CSS.
+- **Component Library:** Shadcn/ui (radix-ui primitives).
+
+### Backend & Core API
+- **Runtime Environment:** Node.js with TypeScript.
+- **Framework:** NestJS (for enterprise-grade, strongly-typed architectural layout).
+- **Primary Database:** PostgreSQL. Maintain strict relational integrity (ACID compliance) between Users, Vehicles, Bids, and Escrow Transactions.
+- **Caching Layer:** Redis (used for caching active auction metadata and reducing database load).
+
+### WebSocket / Real-Time Bidding Engine
+- **Engine Stack:** Go (Golang) microservice dedicated solely to WebSockets, OR built-in Supabase Realtime primitives utilizing WebSockets for sub-millisecond bid broadcasting. Ensure bid serialization and precise microsecond timestamping to prevent race conditions at auction close.
+
+### Infrastructure & Cloud
+- **Provider:** Amazon Web Services (AWS).
+- **Compute:** AWS ECS (Elastic Container Service) with Fargate for serverless auto-scaling.
+- **CDN:** Cloudflare (for edge caching high-resolution vehicle imagery/videos).
+
+---
+
+## 2. Integrated Trust Architecture & Third-Party APIs
+
+When writing backend logic or checkout flows, seamlessly orchestrate these specific services:
+
+1. **Financial Escrow & Title Clearing:** KeySavvy API. All vehicle transaction payouts, loan payoffs, and title transfers must pass through KeySavvy to ensure licensed-dealer security and unlock federal EV tax credits for users.
+2. **Identity Verification:** Persona API. Mandatory biometric ID and selfie verification required for both buyers and sellers prior to listing or bidding.
+3. **Vehicle History Verification:** VinAudit API (or Experian AutoCheck). Automatically pull federal NMVTIS database logs via VIN submission. Permanently reject listings that return severe title brands (Salvage, Flood, Total Loss).
+4. **Mechanical Inspection:** Lemon Squad API. Natively embed their 78-point mobile pre-purchase vehicle inspections directly into the listing detail pages.
+5. **Bank Integration:** Plaid / Finicity API. Securely link buyer bank accounts to fund the escrow wallet.
+6. **Platform Monetization:** Stripe Connect. Used exclusively to capture the platform's 5% auction facilitation fee directly from the transaction.
+
+---
+
+## 3. Engineering & Coding Directives
+
+- **Type Safety:** Write strict, clean TypeScript. Avoid the use of `any`.
+- **Mobile First:** The user interface must be completely optimized for mobile viewports, utilizing sticky action headers, persistent bidding blocks, and scannable layout modules.
+- **UI Architecture:** Do not allow messy, unstructured user text description walls. Force vehicle listings into distinct UI modules: "Known Flaws", "Recent Service", "Modifications", and "Equipment".
+- **Visual Markers:** Visually elevate the Trust Architecture. Always place high-visibility trust badges ("Escrow Secured", "NMVTIS Verified Clean", "Inspection Available") immediately adjacent to primary Call-to-Actions (like the "Place Bid" button).
+- **Security First:** Never expose private API keys to the client-side frontend. All external API requests must be brokered securely through our backend server routes.

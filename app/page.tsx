@@ -1,65 +1,184 @@
-import Image from "next/image";
+import Link from "next/link";
+import { AuctionCard } from "@/components/auctions/auction-card";
+import { SiteHeader } from "@/components/layout/site-header";
+import { TrustBadgeGroup } from "@/components/trust/trust-badge";
+import { Button } from "@/components/ui/button";
+import {
+  featuredAuction,
+  trendingAuctions,
+} from "@/lib/data/trending-auctions";
+import { formatCurrency, formatMileage } from "@/lib/utils/format";
+import { ArrowRight, Clock, MapPin } from "lucide-react";
 
 export default function Home() {
+  const featuredTitle = `${featuredAuction.year} ${featuredAuction.make} ${featuredAuction.model}`;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="flex min-h-full flex-1 flex-col bg-slate-50 text-slate-900">
+      <SiteHeader />
+
+      <main className="flex-1">
+        {/* Hero / Featured listing */}
+        <section className="border-b border-slate-200 bg-white">
+          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+              Featured Auction
+            </p>
+
+            <div className="mt-6 grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
+              {/* Featured image placeholder */}
+              <div className="overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+                <div className="aspect-[4/3]">
+                  <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
+                    <svg
+                      viewBox="0 0 200 80"
+                      className="h-14 w-36 text-slate-300"
+                      fill="currentColor"
+                      aria-hidden
+                    >
+                      <path d="M12 52h14l6-18h96l6 18h14l-10-28H22L12 52zm22-12h112l-4-12H38l-4 12z" />
+                      <circle cx="44" cy="58" r="10" />
+                      <circle cx="156" cy="58" r="10" />
+                    </svg>
+                    <p className="text-sm text-slate-600">Featured vehicle photo</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Listing details */}
+              <div className="flex flex-col gap-6">
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                    {featuredTitle}
+                  </h1>
+                  <p className="mt-1 text-lg text-slate-600">{featuredAuction.trim}</p>
+                  <p className="mt-4 text-sm leading-relaxed text-slate-600">
+                    Licensed-dealer escrow, federal title verification, and structured
+                    seller disclosures on every listing.
+                  </p>
+                </div>
+
+                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
+                  <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                    <dt className="text-xs text-slate-600">Current bid</dt>
+                    <dd className="mt-1 text-lg font-semibold text-slate-900">
+                      {formatCurrency(featuredAuction.currentBidCents)}
+                    </dd>
+                  </div>
+                  <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                    <dt className="text-xs text-slate-600">Active bids</dt>
+                    <dd className="mt-1 text-lg font-semibold text-slate-900">
+                      {featuredAuction.bidCount}
+                    </dd>
+                  </div>
+                  <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                    <dt className="text-xs text-slate-600">Mileage</dt>
+                    <dd className="mt-1 text-lg font-semibold text-slate-900">
+                      {formatMileage(featuredAuction.mileage)} mi
+                    </dd>
+                  </div>
+                  <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                    <dt className="text-xs text-slate-600">Ends in</dt>
+                    <dd className="mt-1 flex items-center gap-1.5 text-lg font-semibold text-slate-900">
+                      <Clock className="size-4 shrink-0 text-slate-500" />
+                      {featuredAuction.endsIn}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                  <MapPin className="size-4 shrink-0 text-slate-500" />
+                  {featuredAuction.location}
+                </div>
+
+                <TrustBadgeGroup
+                  nmvtisVerified={featuredAuction.nmvtisVerified}
+                  inspectionAvailable={featuredAuction.inspectionAvailable}
+                />
+
+                <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row">
+                  <Link href={`/auctions/${featuredAuction.id}`}>
+                    <Button
+                      size="lg"
+                      className="h-11 w-full bg-slate-900 px-6 text-white hover:bg-slate-800 sm:w-auto"
+                    >
+                      Place Bid
+                    </Button>
+                  </Link>
+                  <Link href={`/auctions/${featuredAuction.id}`}>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="h-11 w-full border-slate-300 bg-white px-6 text-slate-900 hover:bg-slate-50 sm:w-auto"
+                    >
+                      View Listing
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Trust strip */}
+        <section className="border-b border-slate-200 bg-white">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-6 px-4 py-4 sm:px-6 lg:px-8">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+              Verified marketplace
+            </p>
+            <TrustBadgeGroup
+              nmvtisVerified
+              inspectionAvailable
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          </div>
+        </section>
+
+        {/* Trending Auctions */}
+        <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
+          <div className="flex flex-col gap-3 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">
+                Trending Auctions
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Live listings with verified titles and escrow-protected transactions.
+              </p>
+            </div>
+            <Link
+              href="/auctions"
+              className="inline-flex items-center gap-1 text-sm font-medium text-slate-900 underline-offset-4 hover:underline"
+            >
+              View all auctions
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+            {trendingAuctions.map((auction) => (
+              <AuctionCard key={auction.id} auction={auction} />
+            ))}
+          </div>
+        </section>
       </main>
+
+      <footer className="mt-auto border-t border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+          <p className="text-sm text-slate-600">
+            © {new Date().getFullYear()} ApexAuction. Escrow via KeySavvy. Titles verified via NMVTIS.
+          </p>
+          <div className="flex gap-6 text-sm text-slate-600">
+            <Link href="#" className="hover:text-slate-900">
+              Privacy
+            </Link>
+            <Link href="#" className="hover:text-slate-900">
+              Terms
+            </Link>
+            <Link href="#" className="hover:text-slate-900">
+              Trust & Safety
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
