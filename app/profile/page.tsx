@@ -1,4 +1,5 @@
 import { SiteHeader } from "@/components/layout/site-header";
+import { ProfileSettingsForm } from "@/components/profile/profile-settings-form";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Card,
@@ -51,6 +52,12 @@ export default async function ProfilePage() {
   if (!user?.email) {
     redirect("/login?next=/profile");
   }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("dealership_name, dealer_license")
+    .eq("id", user.id)
+    .maybeSingle();
 
   const initials = getInitials(user.email);
 
@@ -118,9 +125,10 @@ export default async function ProfilePage() {
               </TabsContent>
 
               <TabsContent value="settings">
-                <EmptyState
-                  title="Account settings coming soon"
-                  description="Profile controls, notification preferences, and connected payment methods will be available here."
+                <ProfileSettingsForm
+                  email={user.email}
+                  dealershipName={profile?.dealership_name ?? ""}
+                  dealerLicense={profile?.dealer_license ?? ""}
                 />
               </TabsContent>
             </Tabs>
