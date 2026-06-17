@@ -50,7 +50,7 @@ export function SiteHeader() {
               href="/dashboard"
               className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
             >
-              Dealer Portal
+              Dealer Dashboard
             </Link>
           </nav>
 
