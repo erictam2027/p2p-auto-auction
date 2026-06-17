@@ -1,5 +1,6 @@
 export type DealerLiveAuction = {
   id: string;
+  vin: string;
   year: number;
   make: string;
   model: string;
@@ -7,6 +8,16 @@ export type DealerLiveAuction = {
   endsIn: string;
   watchers: number;
   reserveMet: boolean;
+};
+
+export type DealerPayoutTransaction = {
+  id: string;
+  vehicle: string;
+  vin: string;
+  amountCents: number;
+  completedAt: string;
+  keysavvyTransferId: string;
+  status: "completed" | "processing";
 };
 
 export type DealerDashboardMetrics = {
@@ -26,6 +37,7 @@ export const dealerMetrics: DealerDashboardMetrics = {
 export const dealerLiveAuctions: DealerLiveAuction[] = [
   {
     id: "auc-001",
+    vin: "WBS8M9C50MA5D1234",
     year: 2021,
     make: "BMW",
     model: "M3",
@@ -36,6 +48,7 @@ export const dealerLiveAuctions: DealerLiveAuction[] = [
   },
   {
     id: "auc-002",
+    vin: "W1NYC7HJ0LX123456",
     year: 2020,
     make: "Mercedes-Benz",
     model: "G63",
@@ -46,6 +59,7 @@ export const dealerLiveAuctions: DealerLiveAuction[] = [
   },
   {
     id: "auc-003",
+    vin: "1FMEE5DP9PLA12345",
     year: 2023,
     make: "Ford",
     model: "Bronco",
@@ -56,6 +70,7 @@ export const dealerLiveAuctions: DealerLiveAuction[] = [
   },
   {
     id: "auc-005",
+    vin: "1G1YC3D40N5123456",
     year: 2022,
     make: "Chevrolet",
     model: "Corvette",
@@ -66,6 +81,7 @@ export const dealerLiveAuctions: DealerLiveAuction[] = [
   },
   {
     id: "featured-001",
+    vin: "WP0AA2A99NS123456",
     year: 2022,
     make: "Porsche",
     model: "911",
@@ -75,3 +91,48 @@ export const dealerLiveAuctions: DealerLiveAuction[] = [
     reserveMet: false,
   },
 ];
+
+export const dealerPayoutTransactions: DealerPayoutTransaction[] = [
+  {
+    id: "pay-001",
+    vehicle: "2019 Audi RS5 Sportback",
+    vin: "WAUB4AF49KA123456",
+    amountCents: 5420000,
+    completedAt: "Jun 12, 2026",
+    keysavvyTransferId: "KS-TRF-88421",
+    status: "completed",
+  },
+  {
+    id: "pay-002",
+    vehicle: "2020 BMW M340i",
+    vin: "WBA5R1C05LAC12345",
+    amountCents: 4890000,
+    completedAt: "Jun 8, 2026",
+    keysavvyTransferId: "KS-TRF-88304",
+    status: "completed",
+  },
+  {
+    id: "pay-003",
+    vehicle: "2021 Tesla Model 3 Performance",
+    vin: "5YJ3E1EA8MF123456",
+    amountCents: 3650000,
+    completedAt: "Jun 3, 2026",
+    keysavvyTransferId: "KS-TRF-88112",
+    status: "completed",
+  },
+  {
+    id: "pay-004",
+    vehicle: "2018 Porsche Cayenne S",
+    vin: "WP1AA2A52JLA12345",
+    amountCents: 4125000,
+    completedAt: "May 28, 2026",
+    keysavvyTransferId: "KS-TRF-87988",
+    status: "completed",
+  },
+];
+
+export const dealerProfileDefaults = {
+  legalName: "Pacific Coast Motors LLC",
+  licenseNumber: "DLR-CA-482910",
+  businessAddress: "1200 Harbor Blvd, San Diego, CA 92101",
+};
