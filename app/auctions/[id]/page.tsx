@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BiddingPanel } from "@/components/auctions/bidding-panel";
-import { ListingGallery } from "@/components/auctions/listing-gallery";
-import { ListingTabs } from "@/components/auctions/listing-tabs";
+import { ListingDetailMain } from "@/components/auctions/listing-detail-main";
 import { SiteHeader } from "@/components/layout/site-header";
 import { formatMileage } from "@/lib/utils/format";
 import {
@@ -74,8 +73,7 @@ export default async function AuctionDetailPage({ params }: AuctionDetailPagePro
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,65fr)_minmax(0,35fr)] lg:gap-10">
           <div className="min-w-0">
-            <ListingGallery imageCount={listing.imageCount} title={title} />
-            <ListingTabs listing={listing} />
+            <ListingDetailMain listing={listing} title={title} />
           </div>
 
           <BiddingPanel listing={listing} />

@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 export const metadata = {
   title: "Browse Auctions | ApexAuction",
   description:
-    "Search and filter live vehicle auctions by make, model, year, title verification, and inspection status.",
+    "Search and filter live vehicle auctions by make, model, max price, clean title, and dealer certification.",
 };
 
 export default function BrowsePage() {

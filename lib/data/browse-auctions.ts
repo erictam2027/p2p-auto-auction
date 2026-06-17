@@ -51,6 +51,10 @@ export const browseAuctions: TrendingAuction[] = [
   },
 ];
 
+export const BROWSE_PRICE_MIN = 25_000;
+export const BROWSE_PRICE_MAX = 150_000;
+export const BROWSE_PRICE_STEP = 5_000;
+
 export const BROWSE_YEAR_MIN = 2015;
 export const BROWSE_YEAR_MAX = 2024;
 

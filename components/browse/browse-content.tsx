@@ -1,6 +1,6 @@
 "use client";
 
-import { AuctionCard } from "@/components/auctions/auction-card";
+import { BrowseAuctionCard } from "@/components/browse/browse-auction-card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,108 +10,51 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import {
-  BROWSE_YEAR_MAX,
-  BROWSE_YEAR_MIN,
+  BROWSE_PRICE_MAX,
+  BROWSE_PRICE_MIN,
+  BROWSE_PRICE_STEP,
   browseAuctions,
   getModelsForMake,
   getUniqueMakes,
   parseEndsInMinutes,
 } from "@/lib/data/browse-auctions";
-import type { TrendingAuction } from "@/lib/data/trending-auctions";
+import {
+  filterBrowseAuctions,
+  hasActiveBrowseFilters,
+  sortBrowseAuctions,
+  type BrowseFilterState,
+  type BrowseSortOption,
+} from "@/lib/utils/filter-browse-auctions";
+import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
-type SortOption = "ending-soonest" | "lowest-mileage" | "highest-bid";
-
-type FilterState = {
-  search: string;
-  make: string;
-  model: string;
-  yearMin: number;
-  yearMax: number;
-  nmvtisCleanTitle: boolean;
-  dealerCertified: boolean;
-};
-
-const DEFAULT_FILTERS: FilterState = {
+const DEFAULT_FILTERS: BrowseFilterState = {
   search: "",
   make: "",
   model: "",
-  yearMin: BROWSE_YEAR_MIN,
-  yearMax: BROWSE_YEAR_MAX,
-  nmvtisCleanTitle: false,
+  maxPrice: BROWSE_PRICE_MAX,
+  cleanTitle: false,
   dealerCertified: false,
 };
 
-const SORT_LABELS: Record<SortOption, string> = {
+const SORT_LABELS: Record<BrowseSortOption, string> = {
   "ending-soonest": "Ending Soonest",
   "lowest-mileage": "Lowest Mileage",
   "highest-bid": "Highest Bid",
 };
 
-function sortAuctions(
-  auctions: TrendingAuction[],
-  sort: SortOption,
-): TrendingAuction[] {
-  const sorted = [...auctions];
-
-  switch (sort) {
-    case "ending-soonest":
-      return sorted.sort(
-        (a, b) =>
-          parseEndsInMinutes(a.endsIn) - parseEndsInMinutes(b.endsIn),
-      );
-    case "lowest-mileage":
-      return sorted.sort((a, b) => a.mileage - b.mileage);
-    case "highest-bid":
-      return sorted.sort((a, b) => b.currentBidCents - a.currentBidCents);
-    default:
-      return sorted;
-  }
-}
-
-function filterAuctions(
-  auctions: TrendingAuction[],
-  filters: FilterState,
-): TrendingAuction[] {
-  const query = filters.search.trim().toLowerCase();
-
-  return auctions.filter((auction) => {
-    if (filters.make && auction.make !== filters.make) return false;
-    if (filters.model && auction.model !== filters.model) return false;
-    if (auction.year < filters.yearMin || auction.year > filters.yearMax) {
-      return false;
-    }
-    if (filters.nmvtisCleanTitle && !auction.nmvtisVerified) return false;
-    if (filters.dealerCertified && !auction.inspectionAvailable) return false;
-
-    if (query) {
-      const haystack = [
-        auction.make,
-        auction.model,
-        auction.trim,
-        auction.location,
-        String(auction.year),
-      ]
-        .join(" ")
-        .toLowerCase();
-      if (!haystack.includes(query)) return false;
-    }
-
-    return true;
-  });
-}
-
 const selectClassName =
   "h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400";
 
 type FilterSidebarProps = {
-  filters: FilterState;
+  filters: BrowseFilterState;
   makes: string[];
   models: string[];
-  onFiltersChange: (filters: FilterState) => void;
+  onFiltersChange: (filters: BrowseFilterState) => void;
   onReset: () => void;
   className?: string;
 };
@@ -124,7 +67,10 @@ function FilterSidebar({
   onReset,
   className,
 }: FilterSidebarProps) {
-  function update<K extends keyof FilterState>(key: K, value: FilterState[K]) {
+  function update<K extends keyof BrowseFilterState>(
+    key: K,
+    value: BrowseFilterState[K],
+  ) {
     onFiltersChange({ ...filters, [key]: value });
   }
 
@@ -198,84 +144,48 @@ function FilterSidebar({
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-slate-900">Year range</p>
-          <p className="text-xs text-slate-600">
-            {filters.yearMin} – {filters.yearMax}
-          </p>
+          <label htmlFor="max-price" className="text-sm font-medium text-slate-900">
+            Max Price
+          </label>
+          <span className="text-xs font-medium text-slate-600">
+            Up to {formatCurrency(filters.maxPrice * 100)}
+          </span>
         </div>
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="year-min" className="text-xs text-slate-600">
-              Minimum year
-            </label>
-            <input
-              id="year-min"
-              type="range"
-              min={BROWSE_YEAR_MIN}
-              max={BROWSE_YEAR_MAX}
-              value={filters.yearMin}
-              onChange={(e) => {
-                const nextMin = Number(e.target.value);
-                onFiltersChange({
-                  ...filters,
-                  yearMin: Math.min(nextMin, filters.yearMax),
-                });
-              }}
-              className="w-full accent-slate-900"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor="year-max" className="text-xs text-slate-600">
-              Maximum year
-            </label>
-            <input
-              id="year-max"
-              type="range"
-              min={BROWSE_YEAR_MIN}
-              max={BROWSE_YEAR_MAX}
-              value={filters.yearMax}
-              onChange={(e) => {
-                const nextMax = Number(e.target.value);
-                onFiltersChange({
-                  ...filters,
-                  yearMax: Math.max(nextMax, filters.yearMin),
-                });
-              }}
-              className="w-full accent-slate-900"
-            />
-          </div>
+        <Slider
+          id="max-price"
+          min={BROWSE_PRICE_MIN}
+          max={BROWSE_PRICE_MAX}
+          step={BROWSE_PRICE_STEP}
+          value={[filters.maxPrice]}
+          onValueChange={(value) => {
+            const next = Array.isArray(value) ? value[0] : value;
+            update("maxPrice", next);
+          }}
+        />
+        <div className="flex justify-between text-xs text-slate-500">
+          <span>{formatCurrency(BROWSE_PRICE_MIN * 100)}</span>
+          <span>{formatCurrency(BROWSE_PRICE_MAX * 100)}</span>
         </div>
       </div>
 
       <div className="space-y-3 border-t border-slate-200 pt-4">
-        <p className="text-sm font-medium text-slate-900">Trust filters</p>
-        <label className="flex cursor-pointer items-start gap-3">
+        <label className="flex cursor-pointer items-center gap-3">
           <input
             type="checkbox"
-            checked={filters.nmvtisCleanTitle}
-            onChange={(e) => update("nmvtisCleanTitle", e.target.checked)}
-            className="mt-0.5 size-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+            checked={filters.cleanTitle}
+            onChange={(e) => update("cleanTitle", e.target.checked)}
+            className="size-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
           />
-          <span>
-            <span className="block text-sm text-slate-900">Clean Title Verified</span>
-            <span className="block text-xs text-slate-600">
-              NMVTIS title history with no salvage, flood, or total-loss brands
-            </span>
-          </span>
+          <span className="text-sm text-slate-900">Clean Title</span>
         </label>
-        <label className="flex cursor-pointer items-start gap-3">
+        <label className="flex cursor-pointer items-center gap-3">
           <input
             type="checkbox"
             checked={filters.dealerCertified}
             onChange={(e) => update("dealerCertified", e.target.checked)}
-            className="mt-0.5 size-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+            className="size-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
           />
-          <span>
-            <span className="block text-sm text-slate-900">Dealer Certified</span>
-            <span className="block text-xs text-slate-600">
-              Pre-listing inspection completed by a verified dealer partner
-            </span>
-          </span>
+          <span className="text-sm text-slate-900">Dealer Certified</span>
         </label>
       </div>
     </aside>
@@ -283,8 +193,8 @@ function FilterSidebar({
 }
 
 export function BrowseContent() {
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const [sort, setSort] = useState<SortOption>("ending-soonest");
+  const [filters, setFilters] = useState<BrowseFilterState>(DEFAULT_FILTERS);
+  const [sort, setSort] = useState<BrowseSortOption>("ending-soonest");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const makes = useMemo(() => getUniqueMakes(browseAuctions), []);
@@ -294,12 +204,35 @@ export function BrowseContent() {
   );
 
   const filteredAuctions = useMemo(() => {
-    const filtered = filterAuctions(browseAuctions, filters);
-    return sortAuctions(filtered, sort);
+    const filtered = filterBrowseAuctions(browseAuctions, filters);
+    return sortBrowseAuctions(filtered, sort, parseEndsInMinutes);
   }, [filters, sort]);
+
+  const filtersActive = hasActiveBrowseFilters(filters, BROWSE_PRICE_MAX);
 
   function handleReset() {
     setFilters(DEFAULT_FILTERS);
+  }
+
+  function clearFilter(key: keyof BrowseFilterState) {
+    setFilters((current) => {
+      switch (key) {
+        case "search":
+          return { ...current, search: "" };
+        case "make":
+          return { ...current, make: "", model: "" };
+        case "model":
+          return { ...current, model: "" };
+        case "maxPrice":
+          return { ...current, maxPrice: BROWSE_PRICE_MAX };
+        case "cleanTitle":
+          return { ...current, cleanTitle: false };
+        case "dealerCertified":
+          return { ...current, dealerCertified: false };
+        default:
+          return current;
+      }
+    });
   }
 
   return (
@@ -360,10 +293,46 @@ export function BrowseContent() {
 
         <div className="min-w-0 lg:col-span-3">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-slate-600">
-              {filteredAuctions.length} listing
-              {filteredAuctions.length === 1 ? "" : "s"} available
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-slate-600">
+                {filteredAuctions.length} of {browseAuctions.length} listing
+                {filteredAuctions.length === 1 ? "" : "s"} shown
+              </p>
+              {filtersActive ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  {filters.search ? (
+                    <button
+                      type="button"
+                      onClick={() => clearFilter("search")}
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                    >
+                      Search: {filters.search}
+                      <X className="size-3" />
+                    </button>
+                  ) : null}
+                  {filters.make ? (
+                    <button
+                      type="button"
+                      onClick={() => clearFilter("make")}
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                    >
+                      Make: {filters.make}
+                      <X className="size-3" />
+                    </button>
+                  ) : null}
+                  {filters.model ? (
+                    <button
+                      type="button"
+                      onClick={() => clearFilter("model")}
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                    >
+                      Model: {filters.model}
+                      <X className="size-3" />
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
 
             <div className="flex items-center gap-2 sm:justify-end">
               <label htmlFor="sort-by" className="text-sm text-slate-600">
@@ -372,10 +341,10 @@ export function BrowseContent() {
               <select
                 id="sort-by"
                 value={sort}
-                onChange={(e) => setSort(e.target.value as SortOption)}
+                onChange={(e) => setSort(e.target.value as BrowseSortOption)}
                 className={cn(selectClassName, "w-auto min-w-[180px]")}
               >
-                {(Object.keys(SORT_LABELS) as SortOption[]).map((option) => (
+                {(Object.keys(SORT_LABELS) as BrowseSortOption[]).map((option) => (
                   <option key={option} value={option}>
                     {SORT_LABELS[option]}
                   </option>
@@ -387,7 +356,7 @@ export function BrowseContent() {
           {filteredAuctions.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
               {filteredAuctions.map((auction) => (
-                <AuctionCard key={auction.id} auction={auction} />
+                <BrowseAuctionCard key={auction.id} auction={auction} />
               ))}
             </div>
           ) : (

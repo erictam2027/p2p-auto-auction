@@ -59,6 +59,8 @@ export function SiteHeader() {
               variant="outline"
               size="sm"
               className="hidden border-slate-900 bg-white text-slate-900 hover:bg-slate-50 sm:inline-flex"
+              nativeButton={false}
+              render={<Link href="/login" />}
             >
               <User className="size-4" />
               Sign In
