@@ -32,7 +32,7 @@ type FilterState = {
   yearMin: number;
   yearMax: number;
   nmvtisCleanTitle: boolean;
-  legitChecked: boolean;
+  dealerCertified: boolean;
 };
 
 const DEFAULT_FILTERS: FilterState = {
@@ -42,7 +42,7 @@ const DEFAULT_FILTERS: FilterState = {
   yearMin: BROWSE_YEAR_MIN,
   yearMax: BROWSE_YEAR_MAX,
   nmvtisCleanTitle: false,
-  legitChecked: false,
+  dealerCertified: false,
 };
 
 const SORT_LABELS: Record<SortOption, string> = {
@@ -85,7 +85,7 @@ function filterAuctions(
       return false;
     }
     if (filters.nmvtisCleanTitle && !auction.nmvtisVerified) return false;
-    if (filters.legitChecked && !auction.inspectionAvailable) return false;
+    if (filters.dealerCertified && !auction.inspectionAvailable) return false;
 
     if (query) {
       const haystack = [
@@ -248,7 +248,7 @@ function FilterSidebar({
       </div>
 
       <div className="space-y-3 border-t border-slate-200 pt-4">
-        <p className="text-sm font-medium text-slate-900">Verification</p>
+        <p className="text-sm font-medium text-slate-900">Trust filters</p>
         <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
@@ -257,23 +257,23 @@ function FilterSidebar({
             className="mt-0.5 size-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
           />
           <span>
-            <span className="block text-sm text-slate-900">NMVTIS Clean Title</span>
+            <span className="block text-sm text-slate-900">Clean Title Verified</span>
             <span className="block text-xs text-slate-600">
-              Federal title history verified with no severe brands
+              NMVTIS title history with no salvage, flood, or total-loss brands
             </span>
           </span>
         </label>
         <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
-            checked={filters.legitChecked}
-            onChange={(e) => update("legitChecked", e.target.checked)}
+            checked={filters.dealerCertified}
+            onChange={(e) => update("dealerCertified", e.target.checked)}
             className="mt-0.5 size-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
           />
           <span>
-            <span className="block text-sm text-slate-900">Legit Checked</span>
+            <span className="block text-sm text-slate-900">Dealer Certified</span>
             <span className="block text-xs text-slate-600">
-              Certified mobile inspection with Buyer Guarantee report
+              Pre-listing inspection completed by a verified dealer partner
             </span>
           </span>
         </label>
@@ -308,67 +308,45 @@ export function BrowseContent() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Browse Auctions</h1>
           <p className="mt-1 text-sm text-slate-600">
-            {filteredAuctions.length} listing
-            {filteredAuctions.length === 1 ? "" : "s"} available
+            Search live inventory with verified title and dealer certification filters.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Dialog open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-            <DialogTrigger
-              render={
-                <Button
-                  variant="outline"
-                  className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50 lg:hidden"
-                />
-              }
-            >
-              <SlidersHorizontal className="size-4" />
-              Filters
-            </DialogTrigger>
-            <DialogContent className="max-h-[85vh] overflow-y-auto border-slate-200 bg-white sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-slate-900">Advanced Filters</DialogTitle>
-              </DialogHeader>
-              <FilterSidebar
-                filters={filters}
-                makes={makes}
-                models={models}
-                onFiltersChange={setFilters}
-                onReset={handleReset}
-              />
+        <Dialog open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+          <DialogTrigger
+            render={
               <Button
-                className="w-full bg-slate-900 text-white hover:bg-slate-800"
-                onClick={() => setMobileFiltersOpen(false)}
-              >
-                Show {filteredAuctions.length} results
-              </Button>
-            </DialogContent>
-          </Dialog>
-
-          <div className="flex items-center gap-2">
-            <label htmlFor="sort-by" className="sr-only">
-              Sort by
-            </label>
-            <span className="hidden text-sm text-slate-600 sm:inline">Sort by</span>
-            <select
-              id="sort-by"
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortOption)}
-              className={cn(selectClassName, "w-auto min-w-[160px]")}
+                variant="outline"
+                className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50 lg:hidden"
+              />
+            }
+          >
+            <SlidersHorizontal className="size-4" />
+            Advanced Filters
+          </DialogTrigger>
+          <DialogContent className="max-h-[85vh] overflow-y-auto border-slate-200 bg-white sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-slate-900">Advanced Filters</DialogTitle>
+            </DialogHeader>
+            <FilterSidebar
+              filters={filters}
+              makes={makes}
+              models={models}
+              onFiltersChange={setFilters}
+              onReset={handleReset}
+            />
+            <Button
+              className="w-full bg-slate-900 text-white hover:bg-slate-800"
+              onClick={() => setMobileFiltersOpen(false)}
             >
-              {(Object.keys(SORT_LABELS) as SortOption[]).map((option) => (
-                <option key={option} value={option}>
-                  {SORT_LABELS[option]}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+              Show {filteredAuctions.length} results
+            </Button>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
-        <div className="hidden lg:block">
+      <div className="grid gap-8 lg:grid-cols-4">
+        <div className="hidden lg:col-span-1 lg:block">
           <div className="sticky top-20 rounded-md border border-slate-200 bg-white p-5 shadow-sm">
             <FilterSidebar
               filters={filters}
@@ -380,7 +358,32 @@ export function BrowseContent() {
           </div>
         </div>
 
-        <div>
+        <div className="min-w-0 lg:col-span-3">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-600">
+              {filteredAuctions.length} listing
+              {filteredAuctions.length === 1 ? "" : "s"} available
+            </p>
+
+            <div className="flex items-center gap-2 sm:justify-end">
+              <label htmlFor="sort-by" className="text-sm text-slate-600">
+                Sort by
+              </label>
+              <select
+                id="sort-by"
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortOption)}
+                className={cn(selectClassName, "w-auto min-w-[180px]")}
+              >
+                {(Object.keys(SORT_LABELS) as SortOption[]).map((option) => (
+                  <option key={option} value={option}>
+                    {SORT_LABELS[option]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           {filteredAuctions.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
               {filteredAuctions.map((auction) => (

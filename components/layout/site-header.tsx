@@ -42,29 +42,23 @@ export function SiteHeader() {
           <nav className="hidden items-center gap-1 lg:flex">
             <Link
               href="/browse"
-              className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
             >
-              Buy
+              Browse Auctions
             </Link>
             <Link
-              href="/sell"
-              className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              href="/dashboard"
+              className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
             >
-              Sell
-            </Link>
-            <Link
-              href="#"
-              className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              How It Works
+              Dealer Portal
             </Link>
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="hidden text-slate-700 hover:bg-slate-50 sm:inline-flex"
+              className="hidden border-slate-900 bg-white text-slate-900 hover:bg-slate-50 sm:inline-flex"
             >
               <User className="size-4" />
               Sign In
@@ -72,8 +66,10 @@ export function SiteHeader() {
             <Button
               size="sm"
               className="hidden bg-slate-900 text-white hover:bg-slate-800 sm:inline-flex"
+              nativeButton={false}
+              render={<Link href="/dealers/apply" />}
             >
-              Get Verified
+              Apply as Dealer
             </Button>
             <Button
               variant="ghost"
