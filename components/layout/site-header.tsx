@@ -1,8 +1,8 @@
-"use client";
-
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
-import { Gavel, Menu, Search, User } from "lucide-react";
+import { UserMenu } from "@/components/auth/user-menu";
+import { Gavel, Menu, Search } from "lucide-react";
 
 function SearchField({ id, className }: { id: string; className?: string }) {
   return (
@@ -23,7 +23,12 @@ function SearchField({ id, className }: { id: string; className?: string }) {
   );
 }
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -55,16 +60,19 @@ export function SiteHeader() {
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden border-slate-900 bg-white text-slate-900 hover:bg-slate-50 sm:inline-flex"
-              nativeButton={false}
-              render={<Link href="/login" />}
-            >
-              <User className="size-4" />
-              Sign In
-            </Button>
+            {user ? (
+              <UserMenu user={user} />
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="hidden border-slate-900 bg-white text-slate-900 hover:bg-slate-50 sm:inline-flex"
+                nativeButton={false}
+                render={<Link href="/login" />}
+              >
+                Sign In
+              </Button>
+            )}
             <Button
               size="sm"
               className="hidden bg-slate-900 text-white hover:bg-slate-800 sm:inline-flex"
