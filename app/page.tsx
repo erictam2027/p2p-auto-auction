@@ -26,8 +26,10 @@ export default function Home() {
             </p>
 
             <div className="mt-6 grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
-              {/* Featured image placeholder */}
-              <div className="overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+              <Link
+                href={`/auctions/${featuredAuction.id}`}
+                className="block overflow-hidden rounded-md border border-slate-200 bg-slate-100"
+              >
                 <div className="aspect-[4/3]">
                   <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
                     <svg
@@ -43,9 +45,8 @@ export default function Home() {
                     <p className="text-sm text-slate-600">Featured vehicle photo</p>
                   </div>
                 </div>
-              </div>
+              </Link>
 
-              {/* Listing details */}
               <div className="flex flex-col gap-6">
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">

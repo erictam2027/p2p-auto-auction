@@ -1,23 +1,84 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { BiddingPanel } from "@/components/auctions/bidding-panel";
+import { ListingDetailMain } from "@/components/auctions/listing-detail-main";
+import { SiteHeader } from "@/components/layout/site-header";
+import { formatMileage } from "@/lib/utils/format";
+import {
+  getAllListingIds,
+  getListingById,
+} from "@/lib/data/listing-details";
+import { ChevronRight, MapPin } from "lucide-react";
+
 type AuctionDetailPageProps = {
   params: Promise<{ id: string }>;
 };
 
+export function generateStaticParams() {
+  return getAllListingIds().map((id) => ({ id }));
+}
+
+export async function generateMetadata({ params }: AuctionDetailPageProps) {
+  const { id } = await params;
+  const listing = getListingById(id);
+
+  if (!listing) {
+    return { title: "Listing Not Found | ApexAuction" };
+  }
+
+  const title = `${listing.year} ${listing.make} ${listing.model}`;
+
+  return {
+    title: `${title} | ApexAuction`,
+    description: `Bid on this ${title} ${listing.trim}. NMVTIS verified, escrow secured via KeySavvy.`,
+  };
+}
+
 export default async function AuctionDetailPage({ params }: AuctionDetailPageProps) {
   const { id } = await params;
+  const listing = getListingById(id);
+
+  if (!listing) {
+    notFound();
+  }
+
+  const title = `${listing.year} ${listing.make} ${listing.model}`;
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8">
-      <header>
-        <p className="text-sm text-zinc-500">Auction #{id}</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-          Vehicle Listing
-        </h1>
-      </header>
+    <div className="flex min-h-full flex-1 flex-col bg-slate-50 text-slate-900">
+      <SiteHeader />
 
-      <section className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500">
-        Listing detail modules (Known Flaws, Recent Service, Modifications,
-        Equipment) will render here.
-      </section>
-    </main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <nav className="mb-4 flex items-center gap-1.5 text-sm text-slate-600">
+          <Link href="/browse" className="hover:text-slate-900">
+            Browse
+          </Link>
+          <ChevronRight className="size-3.5" />
+          <span className="text-slate-900">{title}</span>
+        </nav>
+
+        <header className="mb-6 rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+            {title}
+          </h1>
+          <p className="mt-1 text-base text-slate-600">{listing.trim}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-600">
+            <span>{formatMileage(listing.mileage)} miles</span>
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="size-3.5 text-slate-500" />
+              {listing.location}
+            </span>
+          </div>
+        </header>
+
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,65fr)_minmax(0,35fr)] lg:gap-10">
+          <div className="min-w-0">
+            <ListingDetailMain listing={listing} title={title} />
+          </div>
+
+          <BiddingPanel listing={listing} />
+        </div>
+      </main>
+    </div>
   );
 }
