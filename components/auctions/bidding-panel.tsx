@@ -13,39 +13,39 @@ import {
 import { Input } from "@/components/ui/input";
 import type { ListingDetail } from "@/lib/data/listing-details";
 import { formatCurrency } from "@/lib/utils/format";
-import { ShieldCheck } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 type BiddingPanelProps = {
   listing: ListingDetail;
 };
 
-const BUYERS_FEE_RATE = 0.045;
+const SNIPE_THRESHOLD_SECONDS = 2 * 60;
+const SNIPE_RESET_SECONDS = 2 * 60;
+const SUCCESS_TOAST_MS = 4000;
 
-function formatEndingLabel(totalSeconds: number): string {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  return `Ending in: ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`;
+function formatCountdown(totalSeconds: number): string {
+  if (totalSeconds >= 3600) {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+  }
+
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 export function BiddingPanel({ listing }: BiddingPanelProps) {
-  const [secondsLeft, setSecondsLeft] = useState(listing.endsInSeconds);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [bidError, setBidError] = useState<string | null>(null);
   const minBid = listing.currentBidCents + 10000;
-  const [bidAmount, setBidAmount] = useState(String(Math.ceil(minBid / 100)));
-
   const title = `${listing.year} ${listing.make} ${listing.model}`;
 
-  const bidSummary = useMemo(() => {
-    const bidCents = Math.round(Number(bidAmount) * 100);
-    const buyersFeeCents = Math.round(bidCents * BUYERS_FEE_RATE);
-    return {
-      bidCents,
-      buyersFeeCents,
-      totalCents: bidCents + buyersFeeCents,
-    };
-  }, [bidAmount]);
+  const [secondsLeft, setSecondsLeft] = useState(listing.endsInSeconds);
+  const [bidModalOpen, setBidModalOpen] = useState(false);
+  const [maxBid, setMaxBid] = useState(String(Math.ceil(minBid / 100)));
+  const [bidError, setBidError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [snipeExtended, setSnipeExtended] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -54,29 +54,64 @@ export function BiddingPanel({ listing }: BiddingPanelProps) {
     return () => clearInterval(interval);
   }, []);
 
-  function handlePlaceBidClick() {
-    const dollars = Number(bidAmount);
+  useEffect(() => {
+    if (!successMessage) return;
 
-    if (!bidAmount.trim() || Number.isNaN(dollars) || dollars <= 0) {
-      setBidError("Enter a valid bid amount.");
+    const timeout = setTimeout(() => setSuccessMessage(null), SUCCESS_TOAST_MS);
+    return () => clearTimeout(timeout);
+  }, [successMessage]);
+
+  function openBidModal() {
+    setMaxBid(String(Math.ceil(minBid / 100)));
+    setBidError(null);
+    setBidModalOpen(true);
+  }
+
+  function handleConfirmBid() {
+    const dollars = Number(maxBid);
+
+    if (!maxBid.trim() || Number.isNaN(dollars) || dollars <= 0) {
+      setBidError("Enter a valid max bid amount.");
       return;
     }
 
     if (dollars * 100 < minBid) {
-      setBidError(`Minimum bid is ${formatCurrency(minBid)}.`);
+      setBidError(`Max bid must be at least ${formatCurrency(minBid)}.`);
       return;
     }
 
+    if (secondsLeft < SNIPE_THRESHOLD_SECONDS) {
+      setSecondsLeft(SNIPE_RESET_SECONDS);
+      setSnipeExtended(true);
+    } else {
+      setSnipeExtended(false);
+    }
+
+    setBidModalOpen(false);
     setBidError(null);
-    setConfirmOpen(true);
+    setSuccessMessage(
+      `Bid of ${formatCurrency(Math.round(dollars * 100))} submitted successfully.`,
+    );
   }
 
-  function handleConfirmBid() {
-    setConfirmOpen(false);
-  }
+  const inSnipeWindow = secondsLeft > 0 && secondsLeft <= SNIPE_THRESHOLD_SECONDS;
 
   return (
     <>
+      {successMessage ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-4 right-4 z-50 flex max-w-sm items-start gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 shadow-lg"
+        >
+          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-slate-700" />
+          <div>
+            <p className="text-sm font-medium text-slate-900">Bid confirmed</p>
+            <p className="mt-0.5 text-sm text-slate-600">{successMessage}</p>
+          </div>
+        </div>
+      ) : null}
+
       <aside className="lg:sticky lg:top-20 lg:self-start">
         <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
           <div>
@@ -91,41 +126,33 @@ export function BiddingPanel({ listing }: BiddingPanelProps) {
             </p>
           </div>
 
-          <p className="mt-5 text-center text-lg font-semibold tabular-nums text-orange-600">
-            {formatEndingLabel(secondsLeft)}
-          </p>
+          <div className="mt-5 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+              Time remaining
+            </p>
+            <p
+              className={`mt-1 text-2xl font-semibold tabular-nums ${
+                inSnipeWindow ? "text-orange-600" : "text-slate-900"
+              }`}
+            >
+              {secondsLeft > 0 ? formatCountdown(secondsLeft) : "Ended"}
+            </p>
+            {inSnipeWindow ? (
+              <p className="mt-1 text-xs text-slate-600">
+                Snipe protection active — new bids extend to 2:00
+              </p>
+            ) : null}
+            {snipeExtended ? (
+              <p className="mt-2 text-xs font-medium text-slate-700">
+                Auction extended to 2:00 remaining
+              </p>
+            ) : null}
+          </div>
 
           <div className="mt-5 space-y-3">
-            <label htmlFor="bid-amount" className="text-sm font-medium text-slate-900">
-              Place bid
-            </label>
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-600">
-                $
-              </span>
-              <Input
-                id="bid-amount"
-                type="number"
-                min={Math.ceil(minBid / 100)}
-                step={100}
-                value={bidAmount}
-                onChange={(e) => {
-                  setBidAmount(e.target.value);
-                  if (bidError) setBidError(null);
-                }}
-                className="h-11 w-full border-slate-300 bg-white pl-7 text-slate-900"
-              />
-            </div>
-            <p className="text-xs text-slate-600">
-              Minimum bid: {formatCurrency(minBid)}
-            </p>
-            {bidError ? (
-              <p className="text-xs font-medium text-red-600">{bidError}</p>
-            ) : null}
-
             <Button
               type="button"
-              onClick={handlePlaceBidClick}
+              onClick={openBidModal}
               className="h-11 w-full bg-slate-900 text-base text-white hover:bg-slate-800"
             >
               Place Bid
@@ -136,7 +163,7 @@ export function BiddingPanel({ listing }: BiddingPanelProps) {
         </div>
       </aside>
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <Dialog open={bidModalOpen} onOpenChange={setBidModalOpen}>
         <DialogContent className="gap-0 overflow-hidden border-slate-200 bg-white p-0 sm:max-w-md">
           <DialogHeader className="border-b border-slate-200 px-5 py-4">
             <DialogTitle className="text-lg font-semibold text-slate-900">
@@ -147,40 +174,49 @@ export function BiddingPanel({ listing }: BiddingPanelProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 px-5 py-5">
-            <dl className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
-                <dt className="text-slate-600">Your bid</dt>
-                <dd className="font-semibold text-slate-900">
-                  {formatCurrency(bidSummary.bidCents)}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt className="text-slate-600">Buyer&apos;s fee (4.5%)</dt>
-                <dd className="font-semibold text-slate-900">
-                  {formatCurrency(bidSummary.buyersFeeCents)}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-                <dt className="font-medium text-slate-900">Total due if you win</dt>
-                <dd className="text-lg font-semibold text-slate-900">
-                  {formatCurrency(bidSummary.totalCents)}
-                </dd>
-              </div>
-            </dl>
-
-            <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
-              <div className="flex gap-3">
-                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-slate-700" />
-                <p className="text-xs leading-relaxed text-slate-600">
-                  By confirming, you authorize ApexAuction to place this bid on your behalf.
-                  If you win, funds will be held in a{" "}
-                  <span className="font-medium text-slate-900">KeySavvy escrow account</span>{" "}
-                  until title transfer and vehicle delivery are complete, subject to KeySavvy
-                  escrow terms and platform buyer protection policies.
-                </p>
-              </div>
+          <div className="space-y-5 px-5 py-5">
+            <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+                Current bid
+              </p>
+              <p className="mt-1 text-2xl font-semibold text-slate-900">
+                {formatCurrency(listing.currentBidCents)}
+              </p>
             </div>
+
+            <div className="space-y-2">
+              <label htmlFor="max-bid" className="text-sm font-medium text-slate-900">
+                Max bid
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-600">
+                  $
+                </span>
+                <Input
+                  id="max-bid"
+                  type="number"
+                  min={Math.ceil(minBid / 100)}
+                  step={100}
+                  value={maxBid}
+                  onChange={(e) => {
+                    setMaxBid(e.target.value);
+                    if (bidError) setBidError(null);
+                  }}
+                  className="h-11 w-full border-slate-300 bg-white pl-7 text-slate-900"
+                />
+              </div>
+              <p className="text-xs text-slate-600">
+                Minimum bid: {formatCurrency(minBid)}
+              </p>
+              {bidError ? (
+                <p className="text-xs font-medium text-red-600">{bidError}</p>
+              ) : null}
+            </div>
+
+            <p className="text-xs leading-relaxed text-slate-600">
+              Snipe protection: bids placed with under 2:00 remaining reset the auction
+              clock to exactly 2:00.
+            </p>
           </div>
 
           <DialogFooter className="border-t border-slate-200 bg-slate-50 px-5 py-4 sm:justify-between">
@@ -188,7 +224,7 @@ export function BiddingPanel({ listing }: BiddingPanelProps) {
               type="button"
               variant="outline"
               className="border-slate-300 bg-white text-slate-900 hover:bg-slate-100"
-              onClick={() => setConfirmOpen(false)}
+              onClick={() => setBidModalOpen(false)}
             >
               Cancel
             </Button>
@@ -197,7 +233,7 @@ export function BiddingPanel({ listing }: BiddingPanelProps) {
               className="bg-slate-900 text-white hover:bg-slate-800"
               onClick={handleConfirmBid}
             >
-              Confirm & Secure Bid
+              Confirm Bid
             </Button>
           </DialogFooter>
         </DialogContent>
