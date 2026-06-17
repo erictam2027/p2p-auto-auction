@@ -61,11 +61,14 @@ function isActiveVehicle(row: VehicleRow) {
 
 function vehicleToAuction(vehicle: VehicleRow): TrendingAuction {
   const id = readString(vehicle, ["id", "slug"]);
-  const currentBidCents = readNumber(
+  const storedCurrentBidCents = readNumber(
     vehicle,
-    ["current_bid_cents", "currentBidCents", "starting_bid_cents", "price_cents", "current_bid"],
-    0,
+    ["current_bid_cents", "currentBidCents", "starting_bid_cents", "price_cents"],
+    Number.NaN,
   );
+  const currentBidCents = Number.isFinite(storedCurrentBidCents)
+    ? storedCurrentBidCents
+    : readNumber(vehicle, ["current_bid"], 0) * 100;
 
   return {
     id,

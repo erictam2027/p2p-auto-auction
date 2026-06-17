@@ -1,7 +1,6 @@
 "use client";
 
 import { signOut } from "@/app/auth/actions";
-import { Button } from "@/components/ui/button";
 import type { User } from "@supabase/supabase-js";
 import { ChevronDown, LogOut, UserCircle } from "lucide-react";
 import Link from "next/link";
