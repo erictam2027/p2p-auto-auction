@@ -4,9 +4,12 @@ export type ParsedInventoryVehicle = {
   make: string;
   model: string;
   mileage: string;
+  currentBid: string;
+  timeLeft: string;
+  imageUrl: string;
 };
 
-const REQUIRED_HEADERS = ["vin", "year", "make", "model", "mileage"] as const;
+const REQUIRED_HEADERS = ["year", "make", "model"] as const;
 
 function parseCsvLine(line: string): string[] {
   const values: string[] = [];
@@ -40,7 +43,22 @@ function parseCsvLine(line: string): string[] {
 }
 
 function normalizeHeader(header: string): string {
-  return header.trim().toLowerCase().replace(/\s+/g, "");
+  return header.trim().toLowerCase().replace(/[\s_-]+/g, "");
+}
+
+function readOptionalCell(
+  cells: string[],
+  headerIndex: Record<string, number>,
+  aliases: string[],
+) {
+  for (const alias of aliases) {
+    const index = headerIndex[alias];
+    if (index !== undefined) {
+      return cells[index] ?? "";
+    }
+  }
+
+  return "";
 }
 
 export function parseInventoryCsv(text: string): ParsedInventoryVehicle[] {
@@ -73,8 +91,30 @@ export function parseInventoryCsv(text: string): ParsedInventoryVehicle[] {
       make: cells[headerIndex.make] ?? "",
       model: cells[headerIndex.model] ?? "",
       mileage: cells[headerIndex.mileage] ?? "",
+      currentBid: readOptionalCell(cells, headerIndex, [
+        "currentbid",
+        "startingbid",
+        "price",
+        "askingprice",
+      ]),
+      timeLeft: readOptionalCell(cells, headerIndex, [
+        "timeleft",
+        "endsin",
+        "auctiontimeleft",
+      ]),
+      imageUrl: readOptionalCell(cells, headerIndex, [
+        "imageurl",
+        "photo",
+        "photourl",
+        "image",
+      ]),
     };
-  }).filter((row) => row.vin.length > 0);
+  }).filter(
+    (row) =>
+      row.year.length > 0 &&
+      row.make.length > 0 &&
+      row.model.length > 0,
+  );
 }
 
 export function readCsvFile(file: File): Promise<string> {

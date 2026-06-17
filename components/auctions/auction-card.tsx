@@ -15,19 +15,28 @@ export function AuctionCard({ auction }: AuctionCardProps) {
   return (
     <article className="flex flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
       <Link href={`/auctions/${auction.id}`} className="relative block aspect-[16/10] bg-slate-100">
-        <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-400">
-          <svg
-            viewBox="0 0 120 48"
-            className="h-8 w-20"
-            fill="currentColor"
-            aria-hidden
-          >
-            <path d="M8 32h8l4-12h56l4 12h8l-6-18H14L8 32zm14-8h76l-3-8H25l-3 8z" />
-            <circle cx="28" cy="36" r="6" />
-            <circle cx="92" cy="36" r="6" />
-          </svg>
-          <span className="text-xs text-slate-500">Photo pending</span>
-        </div>
+        {auction.imageUrl ? (
+          <div
+            aria-label={title}
+            role="img"
+            className="h-full w-full bg-cover bg-center"
+            style={{ backgroundImage: `url(${auction.imageUrl})` }}
+          />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-400">
+            <svg
+              viewBox="0 0 120 48"
+              className="h-8 w-20"
+              fill="currentColor"
+              aria-hidden
+            >
+              <path d="M8 32h8l4-12h56l4 12h8l-6-18H14L8 32zm14-8h76l-3-8H25l-3 8z" />
+              <circle cx="28" cy="36" r="6" />
+              <circle cx="92" cy="36" r="6" />
+            </svg>
+            <span className="text-xs text-slate-500">Photo pending</span>
+          </div>
+        )}
 
         <div className="absolute left-2 top-2 flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
           <Clock className="size-3 text-slate-500" />

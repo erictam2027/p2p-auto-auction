@@ -17,7 +17,6 @@ function readString(row: VehicleRow, keys: string[], fallback = "") {
       return value;
     }
   }
-
   return fallback;
 }
 
@@ -34,7 +33,6 @@ function readNumber(row: VehicleRow, keys: string[], fallback = 0) {
       }
     }
   }
-
   return fallback;
 }
 
@@ -45,7 +43,6 @@ function readBoolean(row: VehicleRow, keys: string[], fallback = false) {
       return value;
     }
   }
-
   return fallback;
 }
 
@@ -66,7 +63,7 @@ function vehicleToAuction(vehicle: VehicleRow): TrendingAuction {
   const id = readString(vehicle, ["id", "slug"]);
   const currentBidCents = readNumber(
     vehicle,
-    ["current_bid_cents", "currentBidCents", "starting_bid_cents", "price_cents"],
+    ["current_bid_cents", "currentBidCents", "starting_bid_cents", "price_cents", "current_bid"],
     0,
   );
 
@@ -80,7 +77,8 @@ function vehicleToAuction(vehicle: VehicleRow): TrendingAuction {
     location: readString(vehicle, ["location", "city_state", "city"], "Location pending"),
     currentBidCents,
     bidCount: readNumber(vehicle, ["bid_count", "bidCount"], 0),
-    endsIn: readString(vehicle, ["ends_in", "endsIn"], "Coming soon"),
+    endsIn: readString(vehicle, ["ends_in", "endsIn", "time_left"], "Coming soon"),
+    imageUrl: readString(vehicle, ["image_url", "imageUrl"], ""),
     nmvtisVerified: readBoolean(vehicle, ["nmvtis_verified", "nmvtisVerified"], true),
     inspectionAvailable: readBoolean(
       vehicle,

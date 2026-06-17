@@ -9,6 +9,7 @@ export type TrendingAuction = {
   currentBidCents: number;
   bidCount: number;
   endsIn: string;
+  imageUrl?: string;
   nmvtisVerified: boolean;
   inspectionAvailable: boolean;
 };

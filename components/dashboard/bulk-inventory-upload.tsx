@@ -1,5 +1,6 @@
 "use client";
 
+import { syncInventoryToMarketplace } from "@/app/dashboard/inventory/actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -32,12 +33,11 @@ const INTEGRATIONS = [
 const PREVIEW_ROW_LIMIT = 5;
 
 type UploadStage = "dropzone" | "staging" | "success";
-
-function mockImportVehicles(vehicles: ParsedInventoryVehicle[]): Promise<number> {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(vehicles.length), 1200);
-  });
-}
+type ToastState = {
+  title: string;
+  description: string;
+  variant: "default" | "destructive";
+} | null;
 
 function StagingPreviewTable({ rows }: { rows: ParsedInventoryVehicle[] }) {
   return (
@@ -54,14 +54,21 @@ function StagingPreviewTable({ rows }: { rows: ParsedInventoryVehicle[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {rows.map((row) => (
-              <tr key={row.vin} className="hover:bg-slate-50/80">
-                <td className="px-4 py-3 font-mono text-xs text-slate-900">{row.vin}</td>
+            {rows.map((row, index) => (
+              <tr
+                key={row.vin || `${row.year}-${row.make}-${row.model}-${index}`}
+                className="hover:bg-slate-50/80"
+              >
+                <td className="px-4 py-3 font-mono text-xs text-slate-900">
+                  {row.vin || "Pending"}
+                </td>
                 <td className="px-4 py-3 text-slate-900">{row.year}</td>
                 <td className="px-4 py-3 text-slate-900">{row.make}</td>
                 <td className="px-4 py-3 text-slate-900">{row.model}</td>
                 <td className="px-4 py-3 text-slate-700">
-                  {Number.isNaN(Number(row.mileage.replace(/,/g, "")))
+                  {row.mileage.length === 0
+                    ? "Pending"
+                    : Number.isNaN(Number(row.mileage.replace(/,/g, "")))
                     ? row.mileage
                     : `${formatMileage(Number(row.mileage.replace(/,/g, "")))} mi`}
                 </td>
@@ -85,6 +92,7 @@ export function BulkInventoryUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [parsedVehicles, setParsedVehicles] = useState<ParsedInventoryVehicle[]>([]);
   const [draftCount, setDraftCount] = useState(0);
+  const [toast, setToast] = useState<ToastState>(null);
 
   function resetUpload() {
     setStage("dropzone");
@@ -95,6 +103,7 @@ export function BulkInventoryUpload() {
     setParsedVehicles([]);
     setDraftCount(0);
     setConfirmError(null);
+    setToast(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -153,15 +162,34 @@ export function BulkInventoryUpload() {
   async function handleConfirm() {
     setIsConfirming(true);
     setConfirmError(null);
+    setToast(null);
 
     try {
-      const importedCount = await mockImportVehicles(parsedVehicles);
-      setDraftCount(importedCount);
+      const result = await syncInventoryToMarketplace(parsedVehicles);
+
+      if (!result.ok) {
+        throw new Error(result.error);
+      }
+
+      setDraftCount(result.count);
+      setSelectedFile(null);
+      setParsedVehicles([]);
       setStage("success");
+      setToast({
+        title: "Success",
+        description: "Inventory synced to marketplace!",
+        variant: "default",
+      });
     } catch (error) {
-      setConfirmError(
-        error instanceof Error ? error.message : "Failed to import vehicles.",
-      );
+      const message =
+        error instanceof Error ? error.message : "Failed to import vehicles.";
+
+      setConfirmError(message);
+      setToast({
+        title: "Upload failed",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
       setIsConfirming(false);
     }
@@ -171,6 +199,40 @@ export function BulkInventoryUpload() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-10">
+      {toast ? (
+        <div
+          role={toast.variant === "destructive" ? "alert" : "status"}
+          className={cn(
+            "fixed right-4 top-4 z-50 w-[calc(100%-2rem)] max-w-sm rounded-md border bg-white p-4 text-sm shadow-lg",
+            toast.variant === "destructive"
+              ? "border-red-200 text-red-900"
+              : "border-slate-200 text-slate-900",
+          )}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-semibold">{toast.title}</p>
+              <p
+                className={cn(
+                  "mt-1",
+                  toast.variant === "destructive" ? "text-red-700" : "text-slate-600",
+                )}
+              >
+                {toast.description}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="rounded-sm px-1 text-slate-400 transition-colors hover:text-slate-900"
+              aria-label="Dismiss notification"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <input
         ref={fileInputRef}
         type="file"
