@@ -3,24 +3,149 @@ import { notFound } from "next/navigation";
 import { BiddingPanel } from "@/components/auctions/bidding-panel";
 import { ListingDetailMain } from "@/components/auctions/listing-detail-main";
 import { SiteHeader } from "@/components/layout/site-header";
+import type { ListingDetail, VehicleHistoryEntry } from "@/lib/data/listing-details";
+import { parseEndsInMinutes } from "@/lib/data/browse-auctions";
+import { createClient } from "@/lib/supabase/server";
 import { formatMileage } from "@/lib/utils/format";
-import {
-  getAllListingIds,
-  getListingById,
-} from "@/lib/data/listing-details";
 import { ChevronRight, MapPin } from "lucide-react";
 
 type AuctionDetailPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export function generateStaticParams() {
-  return getAllListingIds().map((id) => ({ id }));
+type VehicleRow = Record<string, unknown>;
+type BidRow = Record<string, unknown>;
+
+const DEFAULT_HISTORY: VehicleHistoryEntry[] = [
+  { label: "Title Status", value: "Clean title verification pending" },
+  { label: "NMVTIS Report", value: "Marketplace verification in progress" },
+  { label: "Odometer", value: "Seller-reported mileage pending" },
+];
+
+const DEFAULT_FLAWS = [
+  "Seller disclosures will be published after inspection review.",
+];
+
+const DEFAULT_SERVICE = [
+  "Service records will appear here once the listing package is finalized.",
+];
+
+const DEFAULT_MODIFICATIONS = [
+  "No modifications reported in the marketplace feed.",
+];
+
+const DEFAULT_EQUIPMENT = [
+  "Equipment details pending seller verification.",
+];
+
+const DEFAULT_DEALER_NOTES = [
+  "This listing was synced from dealer inventory and is being prepared for public bidding.",
+];
+
+function readString(row: VehicleRow, keys: string[], fallback = "") {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value;
+    }
+  }
+
+  return fallback;
+}
+
+function readNumber(row: VehicleRow | BidRow | null | undefined, keys: string[], fallback = 0) {
+  if (!row) return fallback;
+
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  return fallback;
+}
+
+function vehicleToListing(
+  vehicle: VehicleRow,
+  highestBid: number,
+  bidCount: number,
+): ListingDetail {
+  const title = `${readNumber(vehicle, ["year"], new Date().getFullYear())} ${readString(
+    vehicle,
+    ["make"],
+    "Vehicle",
+  )} ${readString(vehicle, ["model"], "Listing")}`;
+  const mileage = readNumber(vehicle, ["mileage", "odometer"], 0);
+  const location = readString(vehicle, ["location", "city_state", "city"], "Location pending");
+  const endsIn = readString(vehicle, ["time_left", "ends_in", "endsIn"], "Coming soon");
+
+  return {
+    id: readString(vehicle, ["id"]),
+    year: readNumber(vehicle, ["year"], new Date().getFullYear()),
+    make: readString(vehicle, ["make"], "Vehicle"),
+    model: readString(vehicle, ["model"], "Listing"),
+    trim: readString(vehicle, ["trim", "variant"], "Verified auction"),
+    mileage,
+    location,
+    currentBidCents: highestBid * 100,
+    bidCount,
+    endsIn,
+    imageUrl: readString(vehicle, ["image_url", "imageUrl"], ""),
+    nmvtisVerified: true,
+    inspectionAvailable: false,
+    vin: readString(vehicle, ["vin"], "Pending"),
+    imageCount: 1,
+    vehicleHistory: [
+      ...DEFAULT_HISTORY,
+      { label: "Listing", value: title },
+      { label: "Location", value: location },
+      { label: "Mileage", value: mileage > 0 ? `${mileage.toLocaleString()} miles` : "Pending" },
+    ],
+    knownFlaws: DEFAULT_FLAWS,
+    recentService: DEFAULT_SERVICE,
+    modifications: DEFAULT_MODIFICATIONS,
+    equipment: DEFAULT_EQUIPMENT,
+    dealerNotes: DEFAULT_DEALER_NOTES,
+    comments: [],
+    endsInSeconds: parseEndsInMinutes(endsIn) * 60,
+  };
+}
+
+async function getAuctionListing(id: string) {
+  const supabase = await createClient();
+  const { data: vehicle, error: vehicleError } = await supabase
+    .from("vehicles")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (vehicleError || !vehicle) {
+    return null;
+  }
+
+  const { data: bids } = await supabase
+    .from("bids")
+    .select("*")
+    .eq("vehicle_id", id);
+
+  const highestBid = Math.max(
+    readNumber(vehicle, ["current_bid"]),
+    ...(bids ?? []).map((bid) => readNumber(bid, ["amount", "bid_amount", "current_bid"])),
+  );
+
+  return vehicleToListing(vehicle, highestBid, bids?.length ?? 0);
 }
 
 export async function generateMetadata({ params }: AuctionDetailPageProps) {
   const { id } = await params;
-  const listing = getListingById(id);
+  const listing = await getAuctionListing(id);
 
   if (!listing) {
     return { title: "Listing Not Found | ApexAuction" };
@@ -36,7 +161,7 @@ export async function generateMetadata({ params }: AuctionDetailPageProps) {
 
 export default async function AuctionDetailPage({ params }: AuctionDetailPageProps) {
   const { id } = await params;
-  const listing = getListingById(id);
+  const listing = await getAuctionListing(id);
 
   if (!listing) {
     notFound();

@@ -1,5 +1,6 @@
 "use client";
 
+import { placeBid } from "@/app/auctions/[id]/actions";
 import { ListingTrustStrip } from "@/components/auctions/listing-trust-strip";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,8 @@ import {
 import { Input } from "@/components/ui/input";
 import type { ListingDetail } from "@/lib/data/listing-details";
 import { formatCurrency } from "@/lib/utils/format";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type BiddingPanelProps = {
@@ -37,13 +39,15 @@ function formatCountdown(totalSeconds: number): string {
 }
 
 export function BiddingPanel({ listing }: BiddingPanelProps) {
-  const minBid = listing.currentBidCents + 10000;
+  const minBid = listing.currentBidCents + 100;
   const title = `${listing.year} ${listing.make} ${listing.model}`;
+  const router = useRouter();
 
   const [secondsLeft, setSecondsLeft] = useState(listing.endsInSeconds);
   const [bidModalOpen, setBidModalOpen] = useState(false);
   const [maxBid, setMaxBid] = useState(String(Math.ceil(minBid / 100)));
   const [bidError, setBidError] = useState<string | null>(null);
+  const [isSubmittingBid, setIsSubmittingBid] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [snipeExtended, setSnipeExtended] = useState(false);
 
@@ -67,7 +71,7 @@ export function BiddingPanel({ listing }: BiddingPanelProps) {
     setBidModalOpen(true);
   }
 
-  function handleConfirmBid() {
+  async function handleConfirmBid() {
     const dollars = Number(maxBid);
 
     if (!maxBid.trim() || Number.isNaN(dollars) || dollars <= 0) {
@@ -75,23 +79,35 @@ export function BiddingPanel({ listing }: BiddingPanelProps) {
       return;
     }
 
-    if (dollars * 100 < minBid) {
-      setBidError(`Max bid must be at least ${formatCurrency(minBid)}.`);
+    if (dollars * 100 <= listing.currentBidCents) {
+      setBidError(`Bid must be higher than ${formatCurrency(listing.currentBidCents)}.`);
       return;
     }
 
-    if (secondsLeft < SNIPE_THRESHOLD_SECONDS) {
-      setSecondsLeft(SNIPE_RESET_SECONDS);
-      setSnipeExtended(true);
-    } else {
-      setSnipeExtended(false);
-    }
-
-    setBidModalOpen(false);
+    setIsSubmittingBid(true);
     setBidError(null);
-    setSuccessMessage(
-      `Bid of ${formatCurrency(Math.round(dollars * 100))} submitted successfully.`,
-    );
+
+    try {
+      const result = await placeBid(listing.id, maxBid);
+
+      if (!result.ok) {
+        setBidError(result.error);
+        return;
+      }
+
+      if (secondsLeft < SNIPE_THRESHOLD_SECONDS) {
+        setSecondsLeft(SNIPE_RESET_SECONDS);
+        setSnipeExtended(true);
+      } else {
+        setSnipeExtended(false);
+      }
+
+      setBidModalOpen(false);
+      setSuccessMessage("Success: You are the highest bidder!");
+      router.refresh();
+    } finally {
+      setIsSubmittingBid(false);
+    }
   }
 
   const inSnipeWindow = secondsLeft > 0 && secondsLeft <= SNIPE_THRESHOLD_SECONDS;
@@ -106,8 +122,10 @@ export function BiddingPanel({ listing }: BiddingPanelProps) {
         >
           <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-slate-700" />
           <div>
-            <p className="text-sm font-medium text-slate-900">Bid confirmed</p>
-            <p className="mt-0.5 text-sm text-slate-600">{successMessage}</p>
+            <p className="text-sm font-medium text-slate-900">{successMessage}</p>
+            <p className="mt-0.5 text-sm text-slate-600">
+              The listing has been refreshed with your latest bid.
+            </p>
           </div>
         </div>
       ) : null}
@@ -198,6 +216,7 @@ export function BiddingPanel({ listing }: BiddingPanelProps) {
                   min={Math.ceil(minBid / 100)}
                   step={100}
                   value={maxBid}
+                  disabled={isSubmittingBid}
                   onChange={(e) => {
                     setMaxBid(e.target.value);
                     if (bidError) setBidError(null);
@@ -225,15 +244,24 @@ export function BiddingPanel({ listing }: BiddingPanelProps) {
               variant="outline"
               className="border-slate-300 bg-white text-slate-900 hover:bg-slate-100"
               onClick={() => setBidModalOpen(false)}
+              disabled={isSubmittingBid}
             >
               Cancel
             </Button>
             <Button
               type="button"
               className="bg-slate-900 text-white hover:bg-slate-800"
-              onClick={handleConfirmBid}
+              onClick={() => void handleConfirmBid()}
+              disabled={isSubmittingBid}
             >
-              Confirm Bid
+              {isSubmittingBid ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Confirming…
+                </>
+              ) : (
+                "Confirm Bid"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

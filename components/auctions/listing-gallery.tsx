@@ -5,6 +5,7 @@ import { useState } from "react";
 
 type ListingGalleryProps = {
   imageCount: number;
+  imageUrl?: string;
   title: string;
 };
 
@@ -21,7 +22,7 @@ const IMAGE_LABELS = [
   "Documentation",
 ] as const;
 
-export function ListingGallery({ imageCount, title }: ListingGalleryProps) {
+export function ListingGallery({ imageCount, imageUrl, title }: ListingGalleryProps) {
   const images = Array.from({ length: imageCount }, (_, index) => index);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -38,22 +39,31 @@ export function ListingGallery({ imageCount, title }: ListingGalleryProps) {
         aria-label={`${title}, ${activeLabel}`}
       >
         <div className="aspect-[16/10]">
-          <div className="flex h-full flex-col items-center justify-center gap-2 p-8">
-            <svg
-              viewBox="0 0 200 80"
-              className="h-20 w-44 text-slate-300"
-              fill="currentColor"
-              aria-hidden
-            >
-              <path d="M12 52h14l6-18h96l6 18h14l-10-28H22L12 52zm22-12h112l-4-12H38l-4 12z" />
-              <circle cx="44" cy="58" r="10" />
-              <circle cx="156" cy="58" r="10" />
-            </svg>
-            <p className="text-sm font-medium text-slate-700">{activeLabel}</p>
-            <p className="text-xs text-slate-500">
-              Photo {activeIndex + 1} of {imageCount}
-            </p>
-          </div>
+          {imageUrl && activeIndex === 0 ? (
+            <div
+              role="img"
+              aria-label={title}
+              className="h-full w-full bg-cover bg-center"
+              style={{ backgroundImage: `url(${imageUrl})` }}
+            />
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-2 p-8">
+              <svg
+                viewBox="0 0 200 80"
+                className="h-20 w-44 text-slate-300"
+                fill="currentColor"
+                aria-hidden
+              >
+                <path d="M12 52h14l6-18h96l6 18h14l-10-28H22L12 52zm22-12h112l-4-12H38l-4 12z" />
+                <circle cx="44" cy="58" r="10" />
+                <circle cx="156" cy="58" r="10" />
+              </svg>
+              <p className="text-sm font-medium text-slate-700">{activeLabel}</p>
+              <p className="text-xs text-slate-500">
+                Photo {activeIndex + 1} of {imageCount}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -76,17 +86,24 @@ export function ListingGallery({ imageCount, title }: ListingGalleryProps) {
                   : "border-slate-200 hover:border-slate-400",
               )}
             >
-              <div className="flex h-full flex-col items-center justify-center gap-1 px-1">
-                <svg
-                  viewBox="0 0 120 48"
-                  className="h-4 w-8 text-slate-300"
-                  fill="currentColor"
-                  aria-hidden
-                >
-                  <path d="M8 32h8l4-12h56l4 12h8l-6-18H14L8 32z" />
-                </svg>
-                <span className="truncate text-[10px] text-slate-500">{index + 1}</span>
-              </div>
+              {imageUrl && index === 0 ? (
+                <div
+                  className="h-full w-full bg-cover bg-center"
+                  style={{ backgroundImage: `url(${imageUrl})` }}
+                />
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center gap-1 px-1">
+                  <svg
+                    viewBox="0 0 120 48"
+                    className="h-4 w-8 text-slate-300"
+                    fill="currentColor"
+                    aria-hidden
+                  >
+                    <path d="M8 32h8l4-12h56l4 12h8l-6-18H14L8 32z" />
+                  </svg>
+                  <span className="truncate text-[10px] text-slate-500">{index + 1}</span>
+                </div>
+              )}
             </button>
           );
         })}

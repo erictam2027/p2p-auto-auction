@@ -12,7 +12,11 @@ type ListingDetailMainProps = {
 export function ListingDetailMain({ listing, title }: ListingDetailMainProps) {
   return (
     <>
-      <ListingGallery imageCount={listing.imageCount} title={title} />
+      <ListingGallery
+        imageCount={listing.imageCount}
+        imageUrl={listing.imageUrl}
+        title={title}
+      />
       <ListingTabs listing={listing} />
     </>
   );
