@@ -130,10 +130,14 @@ async function getAuctionListing(id: string) {
     return null;
   }
 
-  const { data: bids } = await supabase
+  const { data: bids, error: bidsError } = await supabase
     .from("bids")
     .select("*")
     .eq("vehicle_id", id);
+
+  if (bidsError) {
+    console.error("Supabase bids fetch error:", bidsError);
+  }
 
   const highestBid = Math.max(
     readNumber(vehicle, ["current_bid"]),
