@@ -16,10 +16,10 @@ export function ListingGallery({ imageCount, title }: ListingGalleryProps) {
     <div className="space-y-3">
       <div className="overflow-hidden rounded-md border border-slate-200 bg-slate-100">
         <div className="aspect-[16/10]">
-          <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
+          <div className="flex h-full flex-col items-center justify-center gap-2 p-8">
             <svg
               viewBox="0 0 200 80"
-              className="h-16 w-40 text-slate-300"
+              className="h-20 w-44 text-slate-300"
               fill="currentColor"
               aria-hidden
             >
@@ -35,7 +35,7 @@ export function ListingGallery({ imageCount, title }: ListingGalleryProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-6 gap-2">
+      <div className="grid grid-cols-5 gap-2 sm:grid-cols-6">
         {images.map((index) => (
           <button
             key={index}
@@ -46,14 +46,14 @@ export function ListingGallery({ imageCount, title }: ListingGalleryProps) {
             className={cn(
               "aspect-[4/3] overflow-hidden rounded border bg-slate-100 transition-colors",
               activeIndex === index
-                ? "border-slate-900 ring-1 ring-slate-900"
+                ? "border-slate-900"
                 : "border-slate-200 hover:border-slate-400",
             )}
           >
             <div className="flex h-full items-center justify-center">
               <svg
                 viewBox="0 0 120 48"
-                className="h-5 w-10 text-slate-300"
+                className="h-4 w-8 text-slate-300"
                 fill="currentColor"
                 aria-hidden
               >

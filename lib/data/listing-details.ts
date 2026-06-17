@@ -21,6 +21,7 @@ export type ListingDetail = TrendingAuction & {
   recentService: string[];
   modifications: string[];
   equipment: string[];
+  dealerNotes: string[];
   comments: ListingComment[];
   endsInSeconds: number;
 };
@@ -56,6 +57,12 @@ const DEFAULT_EQUIPMENT = [
   "Parking sensors front and rear",
 ];
 
+const DEFAULT_DEALER_NOTES = [
+  "One-owner vehicle purchased new from authorized dealer. Full service records available upon request.",
+  "Vehicle has been reconditioned through our certified pre-owned program prior to listing.",
+  "Remote buyers welcome — we will coordinate transport and KeySavvy escrow closing at no additional dealer fee.",
+];
+
 const DEFAULT_COMMENTS: ListingComment[] = [
   {
     id: "c1",
@@ -72,7 +79,7 @@ const DEFAULT_COMMENTS: ListingComment[] = [
 ];
 
 function buildListing(auction: TrendingAuction): ListingDetail {
-  return {
+  const base: ListingDetail = {
     ...auction,
     vin: "WP0AB2A91NS2" + auction.id.slice(-4).toUpperCase().padStart(4, "0"),
     imageCount: 6,
@@ -85,9 +92,54 @@ function buildListing(auction: TrendingAuction): ListingDetail {
     recentService: DEFAULT_SERVICE,
     modifications: DEFAULT_MODIFICATIONS,
     equipment: DEFAULT_EQUIPMENT,
+    dealerNotes: DEFAULT_DEALER_NOTES,
     comments: DEFAULT_COMMENTS,
     endsInSeconds: parseEndsInMinutes(auction.endsIn) * 60,
   };
+
+  if (auction.id === "auc-001") {
+    return {
+      ...base,
+      vin: "WBS8M9C59MA123456",
+      vehicleHistory: [
+        { label: "Title Status", value: "Clean — no salvage, flood, or total-loss brands" },
+        { label: "NMVTIS Report", value: "Verified — federal database pull completed" },
+        { label: "Odometer", value: "Verified — 18,200 miles matches NMVTIS records" },
+        { label: "Previous Owners", value: "1 registered owner" },
+        { label: "Accident History", value: "No accidents reported to NMVTIS" },
+        { label: "Exterior", value: "Isle of Man Green Metallic" },
+        { label: "Interior", value: "Black Merino leather" },
+        { label: "Location", value: "Austin, TX" },
+      ],
+      knownFlaws: [
+        "Light rock chips on lower front fascia",
+        "Minor curb rash on one wheel (documented in inspection photos)",
+        "Small wear mark on driver seat bolster",
+      ],
+      recentService: [
+        "BMW dealer oil service at 17,400 miles",
+        "Brake fluid flush at 15,200 miles",
+        "Legit Check 78-point inspection completed prior to listing",
+      ],
+      modifications: [
+        "Stock configuration — no aftermarket engine or suspension modifications reported",
+      ],
+      equipment: [
+        "M Carbon exterior package",
+        "Harman Kardon surround sound",
+        "Driving Assistant Professional",
+        "Heated front seats and steering wheel",
+        "Head-up display",
+      ],
+      dealerNotes: [
+        "2021 BMW M3 Competition finished in Isle of Man Green over Black Merino leather.",
+        "Single-owner Texas vehicle with full dealer service history available upon request.",
+        "Remote buyers welcome — KeySavvy escrow and nationwide transport coordination available.",
+      ],
+    };
+  }
+
+  return base;
 }
 
 const listingMap = new Map(

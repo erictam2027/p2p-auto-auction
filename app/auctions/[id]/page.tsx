@@ -4,11 +4,12 @@ import { BiddingPanel } from "@/components/auctions/bidding-panel";
 import { ListingGallery } from "@/components/auctions/listing-gallery";
 import { ListingTabs } from "@/components/auctions/listing-tabs";
 import { SiteHeader } from "@/components/layout/site-header";
+import { formatMileage } from "@/lib/utils/format";
 import {
   getAllListingIds,
   getListingById,
 } from "@/lib/data/listing-details";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, MapPin } from "lucide-react";
 
 type AuctionDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -45,11 +46,11 @@ export default async function AuctionDetailPage({ params }: AuctionDetailPagePro
   const title = `${listing.year} ${listing.make} ${listing.model}`;
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-white text-slate-900">
+    <div className="flex min-h-full flex-1 flex-col bg-slate-50 text-slate-900">
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <nav className="mb-6 flex items-center gap-1.5 text-sm text-slate-600">
+        <nav className="mb-4 flex items-center gap-1.5 text-sm text-slate-600">
           <Link href="/browse" className="hover:text-slate-900">
             Browse
           </Link>
@@ -57,14 +58,21 @@ export default async function AuctionDetailPage({ params }: AuctionDetailPagePro
           <span className="text-slate-900">{title}</span>
         </nav>
 
-        <header className="mb-6">
+        <header className="mb-6 rounded-md border border-slate-200 bg-white p-5 shadow-sm">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
             {title}
           </h1>
           <p className="mt-1 text-base text-slate-600">{listing.trim}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-600">
+            <span>{formatMileage(listing.mileage)} miles</span>
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="size-3.5 text-slate-500" />
+              {listing.location}
+            </span>
+          </div>
         </header>
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)] lg:gap-10">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,65fr)_minmax(0,35fr)] lg:gap-10">
           <div className="min-w-0">
             <ListingGallery imageCount={listing.imageCount} title={title} />
             <ListingTabs listing={listing} />

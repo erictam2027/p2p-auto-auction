@@ -39,7 +39,7 @@ export const trendingAuctions: TrendingAuction[] = [
     location: "Austin, TX",
     currentBidCents: 6850000,
     bidCount: 31,
-    endsIn: "4h 02m",
+    endsIn: "4h 12m",
     nmvtisVerified: true,
     inspectionAvailable: true,
   },

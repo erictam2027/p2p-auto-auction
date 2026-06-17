@@ -14,47 +14,51 @@ type ListingTabsProps = {
 
 export function ListingTabs({ listing }: ListingTabsProps) {
   return (
-    <Tabs defaultValue="history" className="mt-8">
+    <Tabs defaultValue="info" className="mt-8">
       <TabsList
         variant="line"
         className="h-auto w-full justify-start gap-0 rounded-none border-b border-slate-200 bg-transparent p-0"
       >
         <TabsTrigger
-          value="history"
+          value="info"
           className="rounded-none px-4 py-3 text-slate-600 data-active:text-slate-900"
         >
-          Vehicle History
+          Vehicle Info
         </TabsTrigger>
         <TabsTrigger
-          value="flaws"
+          value="condition"
           className="rounded-none px-4 py-3 text-slate-600 data-active:text-slate-900"
         >
-          Known Flaws
+          Condition Report
         </TabsTrigger>
         <TabsTrigger
-          value="comments"
+          value="dealer"
           className="rounded-none px-4 py-3 text-slate-600 data-active:text-slate-900"
         >
-          Community Comments
+          Dealer Notes
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="history" className="pt-6">
+      <TabsContent value="info" className="pt-6">
         <div className="rounded-md border border-slate-200 bg-white">
           <dl className="divide-y divide-slate-100">
             {listing.vehicleHistory.map((entry) => (
               <div
                 key={entry.label}
-                className="grid gap-1 px-4 py-3 sm:grid-cols-[200px_1fr]"
+                className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr]"
               >
                 <dt className="text-sm font-medium text-slate-900">{entry.label}</dt>
                 <dd className="text-sm text-slate-600">{entry.value}</dd>
               </div>
             ))}
+            <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr]">
+              <dt className="text-sm font-medium text-slate-900">VIN</dt>
+              <dd className="font-mono text-sm text-slate-600">{listing.vin}</dd>
+            </div>
           </dl>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <section className="rounded-md border border-slate-200 bg-white p-4">
             <h3 className="text-sm font-semibold text-slate-900">Recent Service</h3>
             <ul className="mt-3 space-y-2">
@@ -78,11 +82,11 @@ export function ListingTabs({ listing }: ListingTabsProps) {
         </div>
       </TabsContent>
 
-      <TabsContent value="flaws" className="pt-6">
+      <TabsContent value="condition" className="pt-6">
         <div className="rounded-md border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-600">
-            Seller-disclosed imperfections documented during the Legit Check inspection.
-            Transparency is required for all ApexAuction listings.
+          <h3 className="text-sm font-semibold text-slate-900">Known Flaws</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            Documented during the certified Legit Check inspection.
           </p>
           <ul className="mt-4 space-y-3">
             {listing.knownFlaws.map((flaw) => (
@@ -109,20 +113,22 @@ export function ListingTabs({ listing }: ListingTabsProps) {
         </section>
       </TabsContent>
 
-      <TabsContent value="comments" className="pt-6">
-        <div className="space-y-4">
-          {listing.comments.map((comment) => (
-            <article
-              key={comment.id}
-              className="rounded-md border border-slate-200 bg-white p-4"
-            >
-              <header className="flex items-center justify-between gap-2">
-                <p className="text-sm font-medium text-slate-900">{comment.author}</p>
-                <time className="text-xs text-slate-600">{comment.postedAt}</time>
-              </header>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">{comment.body}</p>
-            </article>
-          ))}
+      <TabsContent value="dealer" className="pt-6">
+        <div className="rounded-md border border-slate-200 bg-white p-5">
+          <h3 className="text-sm font-semibold text-slate-900">From the Seller</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            Notes provided by the listing dealer.
+          </p>
+          <ul className="mt-4 space-y-4">
+            {listing.dealerNotes.map((note) => (
+              <li
+                key={note}
+                className="border-b border-slate-100 pb-4 text-sm leading-relaxed text-slate-700 last:border-0 last:pb-0"
+              >
+                {note}
+              </li>
+            ))}
+          </ul>
         </div>
       </TabsContent>
     </Tabs>
