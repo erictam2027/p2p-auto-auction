@@ -18,10 +18,8 @@ import {
   Camera,
   Check,
   ChevronLeft,
-  ChevronRight,
   ClipboardCheck,
   Clock,
-  FileSearch,
   MapPin,
   ShieldCheck,
   Wrench,
@@ -29,21 +27,9 @@ import {
 import { useState } from "react";
 
 const STEPS = [
-  {
-    id: 1,
-    title: "VIN Verification",
-    description: "Federal title history check",
-  },
-  {
-    id: 2,
-    title: "Legit Check Inspection",
-    description: "Certified mobile inspection",
-  },
-  {
-    id: 3,
-    title: "Secure Escrow Onboarding",
-    description: "Identity & payout setup",
-  },
+  { id: 1, label: "VIN Check" },
+  { id: 2, label: "Legit Check" },
+  { id: 3, label: "Escrow" },
 ] as const;
 
 const TIME_SLOTS = [
@@ -82,136 +68,131 @@ function formatDateLabel(date: Date): { weekday: string; day: string; month: str
   };
 }
 
-function StepIndicator({
-  step,
-  currentStep,
-  isComplete,
+function TopProgressBar({ currentStep }: { currentStep: number }) {
+  return (
+    <nav aria-label="Onboarding progress" className="w-full">
+      <ol className="flex items-center">
+        {STEPS.map((step, index) => {
+          const isComplete = step.id < currentStep;
+          const isActive = step.id === currentStep;
+          const isLast = index === STEPS.length - 1;
+
+          return (
+            <li
+              key={step.id}
+              className={cn("flex items-center", !isLast && "flex-1")}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className={cn(
+                    "flex size-9 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors",
+                    isComplete
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : isActive
+                        ? "border-slate-900 bg-white text-slate-900"
+                        : "border-slate-200 bg-white text-slate-400",
+                  )}
+                >
+                  {isComplete ? <Check className="size-4" /> : step.id}
+                </div>
+                <span
+                  className={cn(
+                    "whitespace-nowrap text-xs font-medium sm:text-sm",
+                    isActive || isComplete ? "text-slate-900" : "text-slate-400",
+                  )}
+                >
+                  Step {step.id}: {step.label}
+                </span>
+              </div>
+
+              {!isLast && (
+                <div
+                  className={cn(
+                    "mx-3 mb-6 h-0.5 flex-1 sm:mx-4",
+                    isComplete ? "bg-slate-900" : "bg-slate-200",
+                  )}
+                  aria-hidden
+                />
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+function VinCheckStep({
+  vin,
+  onVinChange,
+  onVerify,
 }: {
-  step: (typeof STEPS)[number];
-  currentStep: number;
-  isComplete: boolean;
+  vin: string;
+  onVinChange: (value: string) => void;
+  onVerify: () => void;
 }) {
-  const isActive = step.id === currentStep;
-  const isPast = step.id < currentStep || isComplete;
+  const isValid = vin.length === 17;
 
   return (
-    <div className="flex gap-4">
-      <div className="flex flex-col items-center">
-        <div
-          className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold",
-            isPast
-              ? "border-slate-900 bg-slate-900 text-white"
-              : isActive
-                ? "border-slate-900 bg-white text-slate-900"
-                : "border-slate-200 bg-white text-slate-400",
-          )}
-        >
-          {isPast && step.id < currentStep ? (
-            <Check className="size-4" />
-          ) : (
-            step.id
-          )}
-        </div>
-        {step.id < STEPS.length && (
-          <div
-            className={cn(
-              "my-1 w-px flex-1 min-h-8",
-              step.id < currentStep ? "bg-slate-900" : "bg-slate-200",
-            )}
-          />
-        )}
-      </div>
-      <div className="pb-8 pt-1">
-        <p
-          className={cn(
-            "text-sm font-semibold",
-            isActive || isPast ? "text-slate-900" : "text-slate-400",
-          )}
-        >
-          {step.title}
+    <div className="space-y-8 text-center">
+      <div className="space-y-2">
+        <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">
+          Enter your Vehicle Identification Number
+        </h2>
+        <p className="text-sm text-slate-600">
+          We&apos;ll verify your vehicle against federal title records before proceeding.
         </p>
-        <p className="mt-0.5 text-xs text-slate-600">{step.description}</p>
       </div>
+
+      <div className="mx-auto max-w-md space-y-3 text-left">
+        <label htmlFor="vin" className="sr-only">
+          Vehicle Identification Number
+        </label>
+        <Input
+          id="vin"
+          value={vin}
+          onChange={(e) => onVinChange(e.target.value.toUpperCase())}
+          placeholder="1HGBH41JXMN109186"
+          maxLength={17}
+          className="h-16 border-slate-300 bg-white px-5 text-center font-mono text-xl tracking-[0.2em] text-slate-900 placeholder:tracking-normal placeholder:text-slate-400"
+        />
+        <p className="text-center text-xs text-slate-600">
+          {vin.length} of 17 characters
+        </p>
+      </div>
+
+      <div className="mx-auto max-w-lg rounded-md border border-slate-200 bg-slate-50 px-6 py-5 text-left">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-slate-600" />
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-slate-900">
+              Mandatory Federal NMVTIS Background Check
+            </p>
+            <p className="text-sm leading-relaxed text-slate-600">
+              All vehicles listed on ApexAuction undergo a mandatory NMVTIS
+              (National Motor Vehicle Title Information System) background check.
+              This federal database review verifies title history, odometer
+              readings, and screens for severe brands — including salvage, flood,
+              and total-loss designations — to maintain marketplace integrity.
+              Vehicles that do not pass are permanently ineligible to list.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Button
+        size="lg"
+        disabled={!isValid}
+        onClick={onVerify}
+        className="h-12 min-w-[200px] bg-slate-900 px-8 text-base text-white hover:bg-slate-800 disabled:opacity-50"
+      >
+        Verify VIN
+      </Button>
     </div>
   );
 }
 
-function VinVerificationStep({
-  vin,
-  onVinChange,
-}: {
-  vin: string;
-  onVinChange: (value: string) => void;
-}) {
-  return (
-    <>
-      <CardHeader className="border-b border-slate-200">
-        <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50">
-            <FileSearch className="size-5 text-slate-600" />
-          </span>
-          <div>
-            <CardTitle className="text-lg text-slate-900">Step 1: VIN Verification</CardTitle>
-            <CardDescription className="text-slate-600">
-              Enter your 17-character Vehicle Identification Number to begin certification.
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-6 pt-6">
-        <div className="space-y-2">
-          <label htmlFor="vin" className="text-sm font-medium text-slate-900">
-            Vehicle Identification Number (VIN)
-          </label>
-          <Input
-            id="vin"
-            value={vin}
-            onChange={(e) => onVinChange(e.target.value.toUpperCase())}
-            placeholder="e.g. 1HGBH41JXMN109186"
-            maxLength={17}
-            className="h-14 border-slate-300 bg-white px-4 font-mono text-lg tracking-widest text-slate-900 placeholder:text-slate-400 placeholder:tracking-normal md:text-lg"
-          />
-          <p className="text-xs text-slate-600">
-            {vin.length}/17 characters · Found on your driver-side door jamb or title document
-          </p>
-        </div>
-
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-5">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 size-5 shrink-0 text-slate-600" />
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-slate-900">
-                Mandatory NMVTIS Background Check
-              </p>
-              <p className="text-sm leading-relaxed text-slate-600">
-                Before any vehicle is listed on ApexAuction, we run a mandatory federal
-                NMVTIS (National Motor Vehicle Title Information System) background check.
-                This verifies title history, odometer readings, and flags severe brands
-                including salvage, flood, and total-loss designations. Listings that fail
-                this check are permanently rejected to protect marketplace integrity.
-              </p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Badge variant="outline" className="border-slate-200 text-slate-700">
-                  Title History
-                </Badge>
-                <Badge variant="outline" className="border-slate-200 text-slate-700">
-                  Odometer Verification
-                </Badge>
-                <Badge variant="outline" className="border-slate-200 text-slate-700">
-                  Brand Screening
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </>
-  );
-}
-
-function InspectionStep({
+function LegitCheckStep({
   selectedDate,
   selectedTime,
   location,
@@ -227,221 +208,157 @@ function InspectionStep({
   onLocationChange: (value: string) => void;
 }) {
   return (
-    <>
-      <CardHeader className="border-b border-slate-200">
-        <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50">
-            <Wrench className="size-5 text-slate-600" />
-          </span>
-          <div>
-            <CardTitle className="text-lg text-slate-900">
-              Step 2: Schedule Legit Check Inspection
-            </CardTitle>
-            <CardDescription className="text-slate-600">
-              Book a certified mobile inspection at your location.
-            </CardDescription>
-          </div>
+    <div className="space-y-6 text-left">
+      <div>
+        <h2 className="text-xl font-semibold text-slate-900">Schedule your Legit Check</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          A certified mobile mechanic will inspect, photograph, and certify your vehicle.
+        </p>
+      </div>
+
+      <div className="rounded-md border border-slate-200 bg-slate-50 p-5">
+        <p className="text-sm font-semibold text-slate-900">The StockX Model for Cars</p>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          Our Lemon Squad partner network performs a 78-point mobile inspection at your
+          location, captures professional listing photography, and generates a Buyer
+          Guarantee report — maximizing your final auction price.
+        </p>
+        <ul className="mt-4 space-y-2">
+          {[
+            { icon: Wrench, text: "78-point mechanical inspection" },
+            { icon: Camera, text: "Professional listing photography" },
+            { icon: ClipboardCheck, text: "Buyer Guarantee report" },
+          ].map(({ icon: Icon, text }) => (
+            <li key={text} className="flex items-center gap-2 text-sm text-slate-600">
+              <Icon className="size-4 shrink-0 text-slate-500" />
+              {text}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Calendar className="size-4 text-slate-500" />
+          <p className="text-sm font-medium text-slate-900">Inspection date</p>
         </div>
-      </CardHeader>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          {UPCOMING_DATES.map((date) => {
+            const iso = date.toISOString().split("T")[0];
+            const { weekday, day, month } = formatDateLabel(date);
+            const isSelected = selectedDate === iso;
 
-      <CardContent className="space-y-6 pt-6">
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-5">
-          <p className="text-sm font-semibold text-slate-900">
-            The StockX Model for Cars
-          </p>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            ApexAuction operates on an authentication-first model. A certified mobile
-            mechanic from our Lemon Squad partner network will come directly to your
-            location to perform a comprehensive 78-point inspection, capture
-            professional listing photography, and generate a Buyer Guarantee report.
-            Verified condition documentation consistently drives higher final auction
-            prices and reduces post-sale disputes.
-          </p>
-          <ul className="mt-4 space-y-2">
-            {[
-              { icon: Wrench, text: "78-point mechanical inspection at your location" },
-              { icon: Camera, text: "Professional photos for your listing" },
-              { icon: ClipboardCheck, text: "Buyer Guarantee report attached to auction" },
-            ].map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-2 text-sm text-slate-600">
-                <Icon className="size-4 shrink-0 text-slate-500" />
-                {text}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="size-4 text-slate-500" />
-            <p className="text-sm font-medium text-slate-900">Select inspection date</p>
-          </div>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-            {UPCOMING_DATES.map((date) => {
-              const iso = date.toISOString().split("T")[0];
-              const { weekday, day, month } = formatDateLabel(date);
-              const isSelected = selectedDate === iso;
-
-              return (
-                <button
-                  key={iso}
-                  type="button"
-                  onClick={() => onDateChange(iso)}
-                  className={cn(
-                    "flex flex-col items-center rounded-md border px-2 py-3 text-center transition-colors",
-                    isSelected
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 bg-white text-slate-900 hover:border-slate-400",
-                  )}
-                >
-                  <span className="text-[10px] font-medium uppercase">{weekday}</span>
-                  <span className="text-lg font-semibold leading-tight">{day}</span>
-                  <span className="text-[10px]">{month}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Clock className="size-4 text-slate-500" />
-            <p className="text-sm font-medium text-slate-900">Select time window</p>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {TIME_SLOTS.map((slot) => (
+            return (
               <button
-                key={slot}
+                key={iso}
                 type="button"
-                onClick={() => onTimeChange(slot)}
+                onClick={() => onDateChange(iso)}
                 className={cn(
-                  "rounded-md border px-4 py-2.5 text-left text-sm transition-colors",
-                  selectedTime === slot
+                  "flex flex-col items-center rounded-md border px-2 py-3 text-center transition-colors",
+                  isSelected
                     ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-400",
+                    : "border-slate-200 bg-white text-slate-900 hover:border-slate-400",
                 )}
               >
-                {slot}
+                <span className="text-[10px] font-medium uppercase">{weekday}</span>
+                <span className="text-lg font-semibold leading-tight">{day}</span>
+                <span className="text-[10px]">{month}</span>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
+      </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <MapPin className="size-4 text-slate-500" />
-            <label htmlFor="inspection-location" className="text-sm font-medium text-slate-900">
-              Inspection location
-            </label>
-          </div>
-          <Input
-            id="inspection-location"
-            value={location}
-            onChange={(e) => onLocationChange(e.target.value)}
-            placeholder="Street address, city, state, ZIP"
-            className="h-11 border-slate-300 bg-white text-slate-900"
-          />
-          <p className="text-xs text-slate-600">
-            The inspector will come to this address. Vehicle must be accessible and operable.
-          </p>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Clock className="size-4 text-slate-500" />
+          <p className="text-sm font-medium text-slate-900">Time window</p>
         </div>
-      </CardContent>
-    </>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {TIME_SLOTS.map((slot) => (
+            <button
+              key={slot}
+              type="button"
+              onClick={() => onTimeChange(slot)}
+              className={cn(
+                "rounded-md border px-4 py-2.5 text-left text-sm transition-colors",
+                selectedTime === slot
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-400",
+              )}
+            >
+              {slot}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <MapPin className="size-4 text-slate-500" />
+          <label htmlFor="inspection-location" className="text-sm font-medium text-slate-900">
+            Inspection location
+          </label>
+        </div>
+        <Input
+          id="inspection-location"
+          value={location}
+          onChange={(e) => onLocationChange(e.target.value)}
+          placeholder="Street address, city, state, ZIP"
+          className="h-11 border-slate-300 bg-white text-slate-900"
+        />
+      </div>
+    </div>
   );
 }
 
 function EscrowStep() {
   return (
-    <>
-      <CardHeader className="border-b border-slate-200">
-        <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50">
-            <ShieldCheck className="size-5 text-slate-600" />
-          </span>
+    <div className="space-y-6 text-left">
+      <div>
+        <h2 className="text-xl font-semibold text-slate-900">Secure Escrow Onboarding</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Complete identity verification and connect your KeySavvy payout account.
+        </p>
+      </div>
+
+      <div className="rounded-md border border-slate-200 bg-white p-6">
+        <div className="flex items-center gap-4">
+          <div className="flex size-12 items-center justify-center rounded-md border border-slate-200 bg-slate-50">
+            <span className="text-sm font-bold text-slate-900">KS</span>
+          </div>
           <div>
-            <CardTitle className="text-lg text-slate-900">
-              Step 3: Secure Escrow Onboarding
-            </CardTitle>
-            <CardDescription className="text-slate-600">
-              Complete identity verification and connect your payout account.
-            </CardDescription>
+            <p className="text-base font-semibold text-slate-900">KeySavvy</p>
+            <p className="text-sm text-slate-600">Licensed dealer escrow partner</p>
           </div>
+          <Badge variant="outline" className="ml-auto border-slate-200 text-slate-700">
+            Official Partner
+          </Badge>
         </div>
-      </CardHeader>
+        <p className="mt-5 text-sm leading-relaxed text-slate-600">
+          Before your auction goes live, your identity must be verified and funds secured
+          in a licensed dealer escrow account. KeySavvy holds buyer funds until title
+          transfer is complete, protecting all parties on every transaction.
+        </p>
+      </div>
 
-      <CardContent className="space-y-6 pt-6">
-        <div className="rounded-md border border-slate-200 bg-white p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex size-12 items-center justify-center rounded-md border border-slate-200 bg-slate-50">
-                <span className="text-sm font-bold tracking-tight text-slate-900">
-                  KS
-                </span>
-              </div>
-              <div>
-                <p className="text-base font-semibold text-slate-900">KeySavvy</p>
-                <p className="text-sm text-slate-600">
-                  Licensed dealer escrow & title clearing partner
-                </p>
-              </div>
+      <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
+        {[
+          { title: "Government ID & selfie verification", detail: "Via Persona" },
+          { title: "KeySavvy seller account setup", detail: "Licensed dealer escrow profile" },
+          { title: "Payout method linking", detail: "Bank account verification" },
+          { title: "Title document upload", detail: "Current title or lien authorization" },
+        ].map((item) => (
+          <li key={item.title} className="flex items-start gap-3 px-4 py-3">
+            <BadgeCheck className="mt-0.5 size-4 shrink-0 text-slate-500" />
+            <div>
+              <p className="text-sm font-medium text-slate-900">{item.title}</p>
+              <p className="text-xs text-slate-600">{item.detail}</p>
             </div>
-            <Badge variant="outline" className="w-fit border-slate-200 text-slate-700">
-              Official Escrow Partner
-            </Badge>
-          </div>
-
-          <p className="mt-5 text-sm leading-relaxed text-slate-600">
-            All ApexAuction transactions are processed through KeySavvy, a licensed
-            motor vehicle dealer. Before your auction goes live, your identity must be
-            verified via biometric ID check, and your payout details must be linked to
-            a KeySavvy escrow account. Buyer funds are held in a licensed dealer escrow
-            account until title transfer is complete — protecting both parties and
-            enabling federal EV tax credit eligibility where applicable.
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-slate-900">Required before listing goes live</p>
-          <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
-            {[
-              {
-                title: "Government ID & selfie verification",
-                detail: "Biometric identity check via Persona",
-              },
-              {
-                title: "KeySavvy seller account setup",
-                detail: "Licensed dealer escrow profile creation",
-              },
-              {
-                title: "Payout method linking",
-                detail: "Bank account verification for disbursement",
-              },
-              {
-                title: "Title document upload",
-                detail: "Current title or lien payoff authorization",
-              },
-            ].map((item) => (
-              <li key={item.title} className="flex items-start gap-3 bg-white px-4 py-3">
-                <BadgeCheck className="mt-0.5 size-4 shrink-0 text-slate-500" />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">{item.title}</p>
-                  <p className="text-xs text-slate-600">{item.detail}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs leading-relaxed text-slate-600">
-            By continuing, you authorize ApexAuction to share your verification data with
-            KeySavvy and Persona solely for identity confirmation and escrow account
-            provisioning. Your auction will remain in draft status until all three
-            certification steps are complete.
-          </p>
-        </div>
-      </CardContent>
-    </>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -452,13 +369,12 @@ export function SellerOnboardingWizard() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [location, setLocation] = useState("");
 
-  const canProceedStep1 = vin.length === 17;
   const canProceedStep2 =
     selectedDate !== null && selectedTime !== null && location.trim().length > 0;
 
-  function handleNext() {
-    if (currentStep < 3) {
-      setCurrentStep((s) => s + 1);
+  function handleVerifyVin() {
+    if (vin.length === 17) {
+      setCurrentStep(2);
     }
   }
 
@@ -468,68 +384,85 @@ export function SellerOnboardingWizard() {
     }
   }
 
-  const isLastStep = currentStep === 3;
+  function handleContinue() {
+    if (currentStep < 3) {
+      setCurrentStep((s) => s + 1);
+    }
+  }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[240px_1fr] lg:gap-12">
-      {/* Timeline sidebar */}
-      <aside className="lg:sticky lg:top-24 lg:self-start">
-        <p className="mb-4 text-xs font-medium uppercase tracking-wide text-slate-600">
-          Certification progress
-        </p>
-        {STEPS.map((step) => (
-          <StepIndicator
-            key={step.id}
-            step={step}
-            currentStep={currentStep}
-            isComplete={false}
-          />
-        ))}
-      </aside>
+    <div className="mx-auto w-full max-w-2xl">
+      <TopProgressBar currentStep={currentStep} />
 
-      {/* Active step card */}
-      <Card className="border border-slate-200 bg-white shadow-sm ring-0">
+      <Card className="mt-10 border border-slate-200 bg-white shadow-sm ring-0">
         {currentStep === 1 && (
-          <VinVerificationStep vin={vin} onVinChange={setVin} />
+          <CardContent className="px-6 py-10 sm:px-10 sm:py-12">
+            <VinCheckStep
+              vin={vin}
+              onVinChange={setVin}
+              onVerify={handleVerifyVin}
+            />
+          </CardContent>
         )}
+
         {currentStep === 2 && (
-          <InspectionStep
-            selectedDate={selectedDate}
-            selectedTime={selectedTime}
-            location={location}
-            onDateChange={setSelectedDate}
-            onTimeChange={setSelectedTime}
-            onLocationChange={setLocation}
-          />
+          <>
+            <CardHeader className="border-b border-slate-200 px-6 py-6 sm:px-10">
+              <CardTitle className="sr-only">Legit Check Inspection</CardTitle>
+              <CardDescription className="sr-only">
+                Schedule your certified mobile inspection
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-6 py-8 sm:px-10">
+              <LegitCheckStep
+                selectedDate={selectedDate}
+                selectedTime={selectedTime}
+                location={location}
+                onDateChange={setSelectedDate}
+                onTimeChange={setSelectedTime}
+                onLocationChange={setLocation}
+              />
+            </CardContent>
+            <CardFooter className="flex justify-between border-t border-slate-200 bg-slate-50 px-6 py-4 sm:px-10">
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
+              >
+                <ChevronLeft className="size-4" />
+                Back
+              </Button>
+              <Button
+                onClick={handleContinue}
+                disabled={!canProceedStep2}
+                className="bg-slate-900 text-white hover:bg-slate-800"
+              >
+                Continue
+              </Button>
+            </CardFooter>
+          </>
         )}
-        {currentStep === 3 && <EscrowStep />}
 
-        <CardFooter className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 sm:flex-row sm:justify-between">
-          <Button
-            variant="outline"
-            onClick={handleBack}
-            disabled={currentStep === 1}
-            className="w-full border-slate-300 bg-white text-slate-900 hover:bg-slate-50 sm:w-auto"
-          >
-            <ChevronLeft className="size-4" />
-            Back
-          </Button>
-
-          {isLastStep ? (
-            <Button className="w-full bg-slate-900 text-white hover:bg-slate-800 sm:w-auto">
-              Complete Onboarding
-            </Button>
-          ) : (
-            <Button
-              onClick={handleNext}
-              disabled={currentStep === 1 ? !canProceedStep1 : !canProceedStep2}
-              className="w-full bg-slate-900 text-white hover:bg-slate-800 sm:w-auto"
-            >
-              Continue
-              <ChevronRight className="size-4" />
-            </Button>
-          )}
-        </CardFooter>
+        {currentStep === 3 && (
+          <>
+            <CardContent className="px-6 py-8 sm:px-10">
+              <EscrowStep />
+            </CardContent>
+            <CardFooter className="flex justify-between border-t border-slate-200 bg-slate-50 px-6 py-4 sm:px-10">
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
+              >
+                <ChevronLeft className="size-4" />
+                Back
+              </Button>
+              <Button className="bg-slate-900 text-white hover:bg-slate-800">
+                Complete Onboarding
+              </Button>
+            </CardFooter>
+          </>
+        )}
       </Card>
     </div>
   );
