@@ -15,6 +15,8 @@ export type VehicleHistoryEntry = {
 
 export type ListingDetail = TrendingAuction & {
   vin: string;
+  sellerId: string;
+  sellerName: string;
   imageCount: number;
   engine: string;
   transmission: string;
@@ -89,6 +91,8 @@ function buildListing(auction: TrendingAuction): ListingDetail {
   const base: ListingDetail = {
     ...auction,
     vin: "WP0AB2A91NS2" + auction.id.slice(-4).toUpperCase().padStart(4, "0"),
+    sellerId: "",
+    sellerName: "Seller",
     imageCount: 6,
     engine: "Pending verification",
     transmission: "Pending verification",

@@ -131,6 +131,8 @@ function vehicleToListing(
     nmvtisVerified: true,
     inspectionAvailable: false,
     vin: readString(vehicle, ["vin"], "Pending"),
+    sellerId: readString(vehicle, ["seller_id", "owner_id", "dealer_id", "user_id"]),
+    sellerName: readString(vehicle, ["dealership_name", "seller_name"], "Seller"),
     imageCount: 1,
     engine: readString(vehicle, ["engine"], "Pending verification"),
     transmission: readString(vehicle, ["transmission"], "Pending verification"),
@@ -254,7 +256,11 @@ export default async function AuctionDetailPage({ params }: AuctionDetailPagePro
 
             <BiddingPanel listing={listing} />
             <ListingQuickSpecs listing={listing} />
-            <ListingActionRow />
+            <ListingActionRow
+              vehicleId={listing.id}
+              sellerId={listing.sellerId}
+              sellerName={listing.sellerName}
+            />
           </aside>
         </div>
 

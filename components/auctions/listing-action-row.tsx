@@ -1,22 +1,35 @@
 "use client";
 
+import { MessageSheet } from "@/components/messaging/MessageSheet";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Bell, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export function ListingActionRow() {
+type ListingActionRowProps = {
+  vehicleId: string;
+  sellerId: string;
+  sellerName?: string;
+};
+
+export function ListingActionRow({
+  vehicleId,
+  sellerId,
+  sellerName,
+}: ListingActionRowProps) {
   const [messageOpen, setMessageOpen] = useState(false);
 
   function handleWatchAuction() {
     toast.success("Auction added to your watchlist");
+  }
+
+  function handleMessageSeller() {
+    if (!sellerId) {
+      toast.error("Seller information is unavailable for this listing.");
+      return;
+    }
+
+    setMessageOpen(true);
   }
 
   return (
@@ -34,7 +47,7 @@ export function ListingActionRow() {
         <Button
           type="button"
           variant="outline"
-          onClick={() => setMessageOpen(true)}
+          onClick={handleMessageSeller}
           className="h-11 flex-1 border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
         >
           <MessageCircle className="size-4" />
@@ -42,18 +55,13 @@ export function ListingActionRow() {
         </Button>
       </div>
 
-      <Dialog open={messageOpen} onOpenChange={setMessageOpen}>
-        <DialogContent className="border-slate-200 bg-white sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-semibold text-slate-900">
-              Message Seller
-            </DialogTitle>
-            <DialogDescription className="text-slate-600">
-              In-app messaging coming soon
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+      <MessageSheet
+        open={messageOpen}
+        onOpenChange={setMessageOpen}
+        vehicleId={vehicleId}
+        sellerId={sellerId}
+        sellerName={sellerName}
+      />
     </>
   );
 }
