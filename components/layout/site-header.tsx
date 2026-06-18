@@ -1,4 +1,4 @@
-import { isVerifiedDealer } from "@/lib/auth/profile";
+import { isAdmin, isVerifiedDealer } from "@/lib/auth/profile";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,11 @@ export async function SiteHeader() {
         .maybeSingle()
     : { data: null };
 
-  const isVerifiedDealerUser = Boolean(user && isVerifiedDealer(profile));
+  const isAdminUser = Boolean(user && isAdmin(profile));
+  const isVerifiedDealerUser = Boolean(
+    user && !isAdminUser && isVerifiedDealer(profile),
+  );
+  const showApplyAsDealer = !isAdminUser && !isVerifiedDealerUser;
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
@@ -57,14 +61,14 @@ export async function SiteHeader() {
           <nav className="hidden items-center gap-1 lg:flex">
             <Link
               href="/browse"
-              className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+              className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
             >
               Browse Auctions
             </Link>
             {isVerifiedDealerUser ? (
               <Link
                 href="/dashboard"
-                className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
               >
                 Dealer Dashboard
               </Link>
@@ -85,7 +89,27 @@ export async function SiteHeader() {
                 Sign In
               </Button>
             )}
-            {!isVerifiedDealerUser ? (
+            {isAdminUser ? (
+              <Button
+                size="sm"
+                className="hidden bg-slate-900 text-white hover:bg-slate-800 sm:inline-flex"
+                nativeButton={false}
+                render={<Link href="/admin" />}
+              >
+                Admin Portal
+              </Button>
+            ) : null}
+            {isVerifiedDealerUser ? (
+              <Button
+                size="sm"
+                className="hidden bg-slate-900 text-white hover:bg-slate-800 sm:inline-flex"
+                nativeButton={false}
+                render={<Link href="/dashboard/inventory" />}
+              >
+                Upload Inventory
+              </Button>
+            ) : null}
+            {showApplyAsDealer ? (
               <Button
                 size="sm"
                 className="hidden bg-slate-900 text-white hover:bg-slate-800 sm:inline-flex"
