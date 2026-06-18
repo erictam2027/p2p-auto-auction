@@ -104,7 +104,7 @@ export async function SiteHeader() {
                 size="sm"
                 className="hidden bg-slate-900 text-white hover:bg-slate-800 sm:inline-flex"
                 nativeButton={false}
-                render={<Link href="/dashboard/inventory" />}
+                render={<Link href="/dashboard/upload" />}
               >
                 Upload Inventory
               </Button>
