@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
   Car,
   Gavel,
+  Inbox,
   LayoutDashboard,
   Settings,
   Wallet,
@@ -14,13 +16,18 @@ import {
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/inbox", label: "Inbox", icon: Inbox, showUnreadBadge: true },
   { href: "/dashboard/inventory", label: "Inventory", icon: Car },
   { href: "/dashboard/auctions", label: "Active Auctions", icon: Gavel },
   { href: "/dashboard/payouts", label: "Payouts", icon: Wallet },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ] as const;
 
-export function DashboardSidebar() {
+type DashboardSidebarProps = {
+  unreadMessageCount?: number;
+};
+
+export function DashboardSidebar({ unreadMessageCount = 0 }: DashboardSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -40,11 +47,13 @@ export function DashboardSidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {NAV_ITEMS.map(({ href, label, icon: Icon, ...item }) => {
           const isActive =
             href === "/dashboard"
               ? pathname === "/dashboard"
               : pathname.startsWith(href);
+          const showUnreadBadge =
+            "showUnreadBadge" in item && item.showUnreadBadge && unreadMessageCount > 0;
 
           return (
             <Link
@@ -58,7 +67,17 @@ export function DashboardSidebar() {
               )}
             >
               <Icon className="size-4 shrink-0" />
-              {label}
+              <span className="flex-1">{label}</span>
+              {showUnreadBadge ? (
+                <Badge
+                  className={cn(
+                    "min-w-5 justify-center px-1.5",
+                    isActive ? "bg-white text-slate-900" : "bg-red-600 text-white",
+                  )}
+                >
+                  {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                </Badge>
+              ) : null}
             </Link>
           );
         })}
