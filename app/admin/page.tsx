@@ -20,13 +20,14 @@ export const metadata = {
 type PendingProfileRow = {
   id: string;
   dealership_name: string | null;
+  phone: string | null;
 };
 
 async function getPendingDealerProfiles() {
   const supabase = await createClient();
   const { data: pendingProfiles, error } = await supabase
     .from("profiles")
-    .select("id, dealership_name")
+    .select("id, dealership_name, phone")
     .eq("role", "dealer")
     .eq("verification_status", "pending")
     .order("dealership_name", { ascending: true });
@@ -44,7 +45,7 @@ async function getPendingDealerProfiles() {
           id: profile.id,
           dealership_name: profile.dealership_name,
           email: null,
-          phone: null,
+          phone: profile.phone,
         };
       }
 
@@ -54,7 +55,7 @@ async function getPendingDealerProfiles() {
         id: profile.id,
         dealership_name: profile.dealership_name,
         email: authUser.user?.email ?? null,
-        phone: authUser.user?.phone ?? null,
+        phone: profile.phone ?? authUser.user?.phone ?? null,
       };
     }),
   );
