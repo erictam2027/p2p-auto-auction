@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BiddingPanel } from "@/components/auctions/bidding-panel";
+import { ListingActionRow } from "@/components/auctions/listing-action-row";
 import { ListingDetailMain } from "@/components/auctions/listing-detail-main";
+import { ListingDetailTabs } from "@/components/auctions/listing-detail-tabs";
+import { ListingQuickSpecs } from "@/components/auctions/listing-quick-specs";
 import { SiteHeader } from "@/components/layout/site-header";
 import type { ListingDetail, VehicleHistoryEntry } from "@/lib/data/listing-details";
 import { parseEndsInMinutes } from "@/lib/data/browse-auctions";
@@ -16,12 +19,6 @@ type AuctionDetailPageProps = {
 type VehicleRow = Record<string, unknown>;
 type BidRow = Record<string, unknown>;
 
-const DEFAULT_HISTORY: VehicleHistoryEntry[] = [
-  { label: "Title Status", value: "Clean title verification pending" },
-  { label: "NMVTIS Report", value: "Marketplace verification in progress" },
-  { label: "Odometer", value: "Seller-reported mileage pending" },
-];
-
 const DEFAULT_FLAWS = [
   "Seller disclosures will be published after inspection review.",
 ];
@@ -34,12 +31,8 @@ const DEFAULT_MODIFICATIONS = [
   "No modifications reported in the marketplace feed.",
 ];
 
-const DEFAULT_EQUIPMENT = [
+const DEFAULT_HIGHLIGHTS = [
   "Equipment details pending seller verification.",
-];
-
-const DEFAULT_DEALER_NOTES = [
-  "This listing was synced from dealer inventory and is being prepared for public bidding.",
 ];
 
 function readString(row: VehicleRow, keys: string[], fallback = "") {
@@ -72,6 +65,27 @@ function readNumber(row: VehicleRow | BidRow | null | undefined, keys: string[],
   return fallback;
 }
 
+function readStringArray(row: VehicleRow, keys: string[], fallback: string[]) {
+  for (const key of keys) {
+    const value = row[key];
+
+    if (Array.isArray(value)) {
+      return value
+        .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+        .map((item) => item.trim());
+    }
+
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value
+        .split(/\n|;|\|/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+  }
+
+  return fallback;
+}
+
 function vehicleToListing(
   vehicle: VehicleRow,
   highestBid: number,
@@ -85,6 +99,22 @@ function vehicleToListing(
   const mileage = readNumber(vehicle, ["mileage", "odometer"], 0);
   const location = readString(vehicle, ["location", "city_state", "city"], "Location pending");
   const endsIn = readString(vehicle, ["time_left", "ends_in", "endsIn"], "Coming soon");
+  const titleStatus = readString(
+    vehicle,
+    ["title_status", "titleStatus"],
+    "Clean title verification pending",
+  );
+
+  const vehicleHistory: VehicleHistoryEntry[] = [
+    { label: "Title Status", value: titleStatus },
+    { label: "NMVTIS Report", value: "Marketplace verification in progress" },
+    { label: "Listing", value: title },
+    { label: "Location", value: location },
+    {
+      label: "Mileage",
+      value: mileage > 0 ? `${mileage.toLocaleString()} miles` : "Pending",
+    },
+  ];
 
   return {
     id: readString(vehicle, ["id"]),
@@ -102,17 +132,33 @@ function vehicleToListing(
     inspectionAvailable: false,
     vin: readString(vehicle, ["vin"], "Pending"),
     imageCount: 1,
-    vehicleHistory: [
-      ...DEFAULT_HISTORY,
-      { label: "Listing", value: title },
-      { label: "Location", value: location },
-      { label: "Mileage", value: mileage > 0 ? `${mileage.toLocaleString()} miles` : "Pending" },
-    ],
-    knownFlaws: DEFAULT_FLAWS,
-    recentService: DEFAULT_SERVICE,
-    modifications: DEFAULT_MODIFICATIONS,
-    equipment: DEFAULT_EQUIPMENT,
-    dealerNotes: DEFAULT_DEALER_NOTES,
+    engine: readString(vehicle, ["engine"], "Pending verification"),
+    transmission: readString(vehicle, ["transmission"], "Pending verification"),
+    drivetrain: readString(vehicle, ["drivetrain", "drive_train"], "Pending verification"),
+    exteriorColor: readString(
+      vehicle,
+      ["exterior_color", "exteriorColor", "exterior"],
+      "Pending verification",
+    ),
+    interiorColor: readString(
+      vehicle,
+      ["interior_color", "interiorColor", "interior"],
+      "Pending verification",
+    ),
+    titleStatus,
+    highlights: readStringArray(vehicle, ["highlights", "equipment"], DEFAULT_HIGHLIGHTS),
+    vehicleHistory,
+    knownFlaws: readStringArray(vehicle, ["known_flaws", "knownFlaws"], DEFAULT_FLAWS),
+    recentService: readStringArray(
+      vehicle,
+      ["recent_service", "recentService"],
+      DEFAULT_SERVICE,
+    ),
+    modifications: readStringArray(vehicle, ["modifications"], DEFAULT_MODIFICATIONS),
+    equipment: readStringArray(vehicle, ["equipment"], DEFAULT_HIGHLIGHTS),
+    dealerNotes: readStringArray(vehicle, ["dealer_notes", "dealerNotes"], [
+      "This listing was synced from dealer inventory and is being prepared for public bidding.",
+    ]),
     comments: [],
     endsInSeconds: parseEndsInMinutes(endsIn) * 60,
   };
@@ -186,27 +232,33 @@ export default async function AuctionDetailPage({ params }: AuctionDetailPagePro
           <span className="text-slate-900">{title}</span>
         </nav>
 
-        <header className="mb-6 rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-            {title}
-          </h1>
-          <p className="mt-1 text-base text-slate-600">{listing.trim}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-600">
-            <span>{formatMileage(listing.mileage)} miles</span>
-            <span className="inline-flex items-center gap-1">
-              <MapPin className="size-3.5 text-slate-500" />
-              {listing.location}
-            </span>
-          </div>
-        </header>
-
         <div className="grid gap-8 lg:grid-cols-[minmax(0,65fr)_minmax(0,35fr)] lg:gap-10">
           <div className="min-w-0">
             <ListingDetailMain listing={listing} title={title} />
           </div>
 
-          <BiddingPanel listing={listing} />
+          <aside className="space-y-5 lg:sticky lg:top-20 lg:self-start">
+            <header className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                {title}
+              </h1>
+              <p className="mt-1 text-base text-slate-600">{listing.trim}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-600">
+                <span>{formatMileage(listing.mileage)} miles</span>
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="size-3.5 text-slate-500" />
+                  {listing.location}
+                </span>
+              </div>
+            </header>
+
+            <BiddingPanel listing={listing} />
+            <ListingQuickSpecs listing={listing} />
+            <ListingActionRow />
+          </aside>
         </div>
+
+        <ListingDetailTabs listing={listing} />
       </main>
     </div>
   );

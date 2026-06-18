@@ -2,7 +2,6 @@
 
 import type { ListingDetail } from "@/lib/data/listing-details";
 import { ListingGallery } from "@/components/auctions/listing-gallery";
-import { ListingTabs } from "@/components/auctions/listing-tabs";
 
 type ListingDetailMainProps = {
   listing: ListingDetail;
@@ -11,13 +10,10 @@ type ListingDetailMainProps = {
 
 export function ListingDetailMain({ listing, title }: ListingDetailMainProps) {
   return (
-    <>
-      <ListingGallery
-        imageCount={listing.imageCount}
-        imageUrl={listing.imageUrl}
-        title={title}
-      />
-      <ListingTabs listing={listing} />
-    </>
+    <ListingGallery
+      imageCount={listing.imageCount}
+      imageUrl={listing.imageUrl}
+      title={title}
+    />
   );
 }

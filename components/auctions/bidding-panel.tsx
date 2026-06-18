@@ -36,38 +36,36 @@ export function BiddingPanel({ listing }: BiddingPanelProps) {
   const inSnipeWindow = secondsLeft > 0 && secondsLeft <= SNIPE_THRESHOLD_SECONDS;
 
   return (
-    <aside className="lg:sticky lg:top-20 lg:self-start">
-      <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-        <LiveBidTracker
-          key={`${listing.id}-${listing.currentBidCents}-${listing.bidCount}`}
-          vehicleId={listing.id}
-          initialCurrentBidCents={listing.currentBidCents}
-          initialBidsCount={listing.bidCount}
-          location={listing.location}
-        />
+    <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+      <LiveBidTracker
+        key={`${listing.id}-${listing.currentBidCents}-${listing.bidCount}`}
+        vehicleId={listing.id}
+        initialCurrentBidCents={listing.currentBidCents}
+        initialBidsCount={listing.bidCount}
+        location={listing.location}
+      />
 
-        <div className="mt-5 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-center">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
-            Time remaining
+      <div className="mt-5 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+          Time remaining
+        </p>
+        <p
+          className={`mt-1 text-2xl font-semibold tabular-nums ${
+            inSnipeWindow ? "text-orange-600" : "text-slate-900"
+          }`}
+        >
+          {secondsLeft > 0 ? formatCountdown(secondsLeft) : "Ended"}
+        </p>
+        {inSnipeWindow ? (
+          <p className="mt-1 text-xs text-slate-600">
+            Snipe protection active — new bids extend to 2:00
           </p>
-          <p
-            className={`mt-1 text-2xl font-semibold tabular-nums ${
-              inSnipeWindow ? "text-orange-600" : "text-slate-900"
-            }`}
-          >
-            {secondsLeft > 0 ? formatCountdown(secondsLeft) : "Ended"}
-          </p>
-          {inSnipeWindow ? (
-            <p className="mt-1 text-xs text-slate-600">
-              Snipe protection active — new bids extend to 2:00
-            </p>
-          ) : null}
-        </div>
-
-        <div className="mt-5">
-          <ListingTrustStrip />
-        </div>
+        ) : null}
       </div>
-    </aside>
+
+      <div className="mt-5">
+        <ListingTrustStrip />
+      </div>
+    </div>
   );
 }

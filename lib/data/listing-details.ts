@@ -16,6 +16,13 @@ export type VehicleHistoryEntry = {
 export type ListingDetail = TrendingAuction & {
   vin: string;
   imageCount: number;
+  engine: string;
+  transmission: string;
+  drivetrain: string;
+  exteriorColor: string;
+  interiorColor: string;
+  titleStatus: string;
+  highlights: string[];
   vehicleHistory: VehicleHistoryEntry[];
   knownFlaws: string[];
   recentService: string[];
@@ -83,6 +90,13 @@ function buildListing(auction: TrendingAuction): ListingDetail {
     ...auction,
     vin: "WP0AB2A91NS2" + auction.id.slice(-4).toUpperCase().padStart(4, "0"),
     imageCount: 6,
+    engine: "Pending verification",
+    transmission: "Pending verification",
+    drivetrain: "Pending verification",
+    exteriorColor: "Pending verification",
+    interiorColor: "Pending verification",
+    titleStatus: "Clean title verification pending",
+    highlights: DEFAULT_EQUIPMENT,
     vehicleHistory: [
       ...DEFAULT_HISTORY,
       { label: "Location", value: auction.location },
