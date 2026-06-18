@@ -1,4 +1,4 @@
-import { PendingDealersTable } from "@/components/admin/pending-dealers-table";
+import { DealerTable } from "@/components/admin/DealerTable";
 import { SiteHeader } from "@/components/layout/site-header";
 import {
   Card,
@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { isAdmin } from "@/lib/auth/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { ShieldCheck } from "lucide-react";
@@ -18,17 +17,17 @@ export const metadata = {
   description: "Review and approve pending dealer verification applications.",
 };
 
-type PendingProfile = {
+type PendingProfileRow = {
   id: string;
   dealership_name: string | null;
-  dealer_license: string | null;
 };
 
-async function getPendingDealersWithEmail() {
+async function getPendingDealerProfiles() {
   const supabase = await createClient();
   const { data: pendingProfiles, error } = await supabase
     .from("profiles")
-    .select("id, dealership_name, dealer_license")
+    .select("id, dealership_name")
+    .eq("role", "dealer")
     .eq("verification_status", "pending")
     .order("dealership_name", { ascending: true });
 
@@ -38,27 +37,27 @@ async function getPendingDealersWithEmail() {
 
   const adminClient = createAdminClient();
 
-  const dealers = await Promise.all(
-    pendingProfiles.map(async (profile: PendingProfile) => {
+  return Promise.all(
+    pendingProfiles.map(async (profile: PendingProfileRow) => {
       if (!adminClient) {
         return {
-          ...profile,
+          id: profile.id,
+          dealership_name: profile.dealership_name,
           email: null,
+          phone: null,
         };
       }
 
-      const { data: authUser } = await adminClient.auth.admin.getUserById(
-        profile.id,
-      );
+      const { data: authUser } = await adminClient.auth.admin.getUserById(profile.id);
 
       return {
-        ...profile,
+        id: profile.id,
+        dealership_name: profile.dealership_name,
         email: authUser.user?.email ?? null,
+        phone: authUser.user?.phone ?? null,
       };
     }),
   );
-
-  return dealers;
 }
 
 export default async function AdminPage() {
@@ -73,15 +72,15 @@ export default async function AdminPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, verification_status")
+    .select("role")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!isAdmin(profile)) {
+  if (profile?.role !== "admin") {
     redirect("/");
   }
 
-  const pendingDealers = await getPendingDealersWithEmail();
+  const pendingProfiles = await getPendingDealerProfiles();
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-slate-50 text-slate-900">
@@ -109,19 +108,19 @@ export default async function AdminPage() {
               </div>
               <div>
                 <CardTitle className="text-lg font-semibold text-slate-900">
-                  Pending Applications
+                  Pending Dealership Applications
                 </CardTitle>
                 <CardDescription className="mt-1 text-slate-600">
-                  {pendingDealers.length === 1
-                    ? "1 application awaiting approval"
-                    : `${pendingDealers.length} applications awaiting approval`}
+                  {pendingProfiles.length === 1
+                    ? "1 application awaiting review"
+                    : `${pendingProfiles.length} applications awaiting review`}
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
 
           <CardContent className="pt-6">
-            <PendingDealersTable dealers={pendingDealers} />
+            <DealerTable profiles={pendingProfiles} />
           </CardContent>
         </Card>
       </main>

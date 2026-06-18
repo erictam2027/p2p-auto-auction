@@ -1,45 +1,57 @@
 "use server";
 
-import { isAdmin } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export type ApproveDealerResult =
-  | { ok: true }
-  | { ok: false; message: string };
-
-export async function approveDealerApplication(
-  profileId: string,
-): Promise<ApproveDealerResult> {
+async function assertAdmin() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { ok: false, message: "You must be signed in." };
+    throw new Error("Unauthorized");
   }
 
-  const { data: adminProfile } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
-    .select("role, verification_status")
+    .select("role")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!isAdmin(adminProfile)) {
-    return { ok: false, message: "You are not authorized to approve dealers." };
+  if (profile?.role !== "admin") {
+    throw new Error("Unauthorized");
   }
+
+  return supabase;
+}
+
+export async function approveDealer(userId: string) {
+  const supabase = await assertAdmin();
 
   const { error } = await supabase
     .from("profiles")
     .update({ verification_status: "verified" })
-    .eq("id", profileId)
-    .eq("verification_status", "pending");
+    .eq("id", userId);
 
   if (error) {
-    return { ok: false, message: error.message };
+    throw new Error(error.message);
   }
 
   revalidatePath("/admin");
-  return { ok: true };
+}
+
+export async function rejectDealer(userId: string) {
+  const supabase = await assertAdmin();
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ verification_status: "rejected" })
+    .eq("id", userId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin");
 }
