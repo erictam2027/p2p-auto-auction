@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 type PlaceBidResult =
   | {
       ok: true;
+      newBidCents: number;
     }
   | {
       ok: false;
@@ -66,6 +67,17 @@ export async function placeBid(
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      ok: false,
+      error: "You must be signed in to place a bid.",
+    };
+  }
+
   const { data: vehicle, error: vehicleError } = await supabase
     .from("vehicles")
     .select("id,current_bid")
@@ -113,5 +125,62 @@ export async function placeBid(
     };
   }
 
-  return { ok: true };
+  return { ok: true, newBidCents: amount * 100 };
+}
+
+export async function placeQuickBid(vehicleId: string): Promise<PlaceBidResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      ok: false,
+      error: "You must be signed in to place a bid.",
+    };
+  }
+
+  const { data: vehicle, error: vehicleError } = await supabase
+    .from("vehicles")
+    .select("id,current_bid")
+    .eq("id", vehicleId)
+    .single();
+
+  if (vehicleError || !vehicle) {
+    return {
+      ok: false,
+      error: vehicleError?.message ?? "Vehicle listing was not found.",
+    };
+  }
+
+  const currentBid = readNumber(vehicle, ["current_bid"]);
+  const highestBid = Math.max(currentBid, await getHighestBidAmount(supabase, vehicleId));
+  const amount = highestBid + 100;
+
+  const { error: insertError } = await supabase.from("bids").insert({
+    vehicle_id: vehicleId,
+    amount,
+  });
+
+  if (insertError) {
+    return {
+      ok: false,
+      error: insertError.message,
+    };
+  }
+
+  const { error: updateError } = await supabase
+    .from("vehicles")
+    .update({ current_bid: amount })
+    .eq("id", vehicleId);
+
+  if (updateError) {
+    return {
+      ok: false,
+      error: updateError.message,
+    };
+  }
+
+  return { ok: true, newBidCents: amount * 100 };
 }
