@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { BiddingPanel } from "@/components/auctions/bidding-panel";
+import { CardSetupHandler } from "@/components/auctions/card-setup-handler";
+import { KeySavvyReturnHandler } from "@/components/auctions/keysavvy-return-handler";
 import { ListingActionRow } from "@/components/auctions/listing-action-row";
 import { ListingDetailMain } from "@/components/auctions/listing-detail-main";
 import { ListingDetailTabs } from "@/components/auctions/listing-detail-tabs";
 import { ListingQuickSpecs } from "@/components/auctions/listing-quick-specs";
 import { SiteHeader } from "@/components/layout/site-header";
+import { isAuctionLive } from "@/lib/auctions/vehicle-status";
+import { fetchEscrowForVehicle } from "@/lib/data/escrow-transactions";
 import type { ListingDetail, VehicleHistoryEntry } from "@/lib/data/listing-details";
 import { createClient } from "@/lib/supabase/server";
 import { formatMileage } from "@/lib/utils/format";
@@ -114,6 +119,13 @@ function vehicleToListing(
   const mileage = readNumber(vehicle, ["mileage", "odometer"], 0);
   const location = readString(vehicle, ["location", "city_state", "city"], "Location pending");
   const endTime = readEndTime(vehicle);
+  const status = readString(vehicle, ["status"], "live");
+  const winnerId = readString(vehicle, ["winner_id", "winnerId"]);
+  const live = isAuctionLive({
+    status,
+    end_time: endTime || (vehicle.end_time as string | null | undefined),
+  });
+
   const titleStatus = readString(
     vehicle,
     ["title_status", "titleStatus"],
@@ -141,8 +153,12 @@ function vehicleToListing(
     location,
     currentBidCents: highestBid * 100,
     bidCount,
-    endsIn: endTime ? "" : "Ended",
+    endsIn: live ? "" : "Ended",
     endTime,
+    status,
+    winnerId,
+    isLive: live,
+    winnerLabel: "",
     imageUrl: readString(vehicle, ["image_url", "imageUrl"], ""),
     nmvtisVerified: true,
     inspectionAvailable: false,
@@ -187,7 +203,7 @@ async function getAuctionListing(id: string) {
   const { data: vehicle, error: vehicleError } = await supabase
     .from("vehicles")
     .select(
-      "id, year, make, model, trim, mileage, location, city_state, vin, seller_id, image_url, carfax_url, engine, transmission, drivetrain, exterior_color, interior_color, title_status, highlights, known_flaws, recent_service, modifications, equipment, dealer_notes, end_time, current_bid, status",
+      "id, year, make, model, trim, mileage, location, city_state, vin, seller_id, winner_id, image_url, carfax_url, engine, transmission, drivetrain, exterior_color, interior_color, title_status, highlights, known_flaws, recent_service, modifications, equipment, dealer_notes, end_time, current_bid, status",
     )
     .eq("id", id)
     .single();
@@ -210,7 +226,20 @@ async function getAuctionListing(id: string) {
     ...(bids ?? []).map((bid) => readNumber(bid, ["amount", "bid_amount", "current_bid"])),
   );
 
-  return vehicleToListing(vehicle, highestBid, bids?.length ?? 0);
+  const listing = vehicleToListing(vehicle, highestBid, bids?.length ?? 0);
+
+  if (listing.winnerId) {
+    const { data: winnerProfile } = await supabase
+      .from("profiles")
+      .select("email, dealership_name")
+      .eq("id", listing.winnerId)
+      .maybeSingle();
+
+    listing.winnerLabel =
+      winnerProfile?.email ?? winnerProfile?.dealership_name ?? "Winning bidder";
+  }
+
+  return listing;
 }
 
 export async function generateMetadata({ params }: AuctionDetailPageProps) {
@@ -231,16 +260,25 @@ export async function generateMetadata({ params }: AuctionDetailPageProps) {
 
 export default async function AuctionDetailPage({ params }: AuctionDetailPageProps) {
   const { id } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const listing = await getAuctionListing(id);
 
   if (!listing) {
     notFound();
   }
 
+  const escrow = await fetchEscrowForVehicle(id);
   const title = `${listing.year} ${listing.make} ${listing.model}`;
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-slate-50 text-slate-900">
+      <Suspense fallback={null}>
+        <CardSetupHandler />
+        <KeySavvyReturnHandler />
+      </Suspense>
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
@@ -272,7 +310,11 @@ export default async function AuctionDetailPage({ params }: AuctionDetailPagePro
               </div>
             </header>
 
-            <BiddingPanel listing={listing} />
+            <BiddingPanel
+              listing={listing}
+              viewerUserId={user?.id ?? null}
+              escrow={escrow}
+            />
             <ListingQuickSpecs listing={listing} />
             <ListingActionRow
               vehicleId={listing.id}

@@ -15,11 +15,10 @@ import {
   BROWSE_PRICE_MAX,
   BROWSE_PRICE_MIN,
   BROWSE_PRICE_STEP,
-  browseAuctions,
   getModelsForMake,
   getUniqueMakes,
-  parseEndsInMinutes,
 } from "@/lib/data/browse-auctions";
+import type { TrendingAuction } from "@/lib/data/trending-auctions";
 import {
   filterBrowseAuctions,
   hasActiveBrowseFilters,
@@ -192,21 +191,25 @@ function FilterSidebar({
   );
 }
 
-export function BrowseContent() {
+export function BrowseContent({
+  initialAuctions,
+}: {
+  initialAuctions: TrendingAuction[];
+}) {
   const [filters, setFilters] = useState<BrowseFilterState>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<BrowseSortOption>("ending-soonest");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  const makes = useMemo(() => getUniqueMakes(browseAuctions), []);
+  const makes = useMemo(() => getUniqueMakes(initialAuctions), [initialAuctions]);
   const models = useMemo(
-    () => getModelsForMake(browseAuctions, filters.make),
-    [filters.make],
+    () => getModelsForMake(initialAuctions, filters.make),
+    [initialAuctions, filters.make],
   );
 
   const filteredAuctions = useMemo(() => {
-    const filtered = filterBrowseAuctions(browseAuctions, filters);
-    return sortBrowseAuctions(filtered, sort, parseEndsInMinutes);
-  }, [filters, sort]);
+    const filtered = filterBrowseAuctions(initialAuctions, filters);
+    return sortBrowseAuctions(filtered, sort);
+  }, [initialAuctions, filters, sort]);
 
   const filtersActive = hasActiveBrowseFilters(filters, BROWSE_PRICE_MAX);
 
@@ -295,7 +298,7 @@ export function BrowseContent() {
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-2">
               <p className="text-sm text-slate-600">
-                {filteredAuctions.length} of {browseAuctions.length} listing
+                {filteredAuctions.length} of {initialAuctions.length} listing
                 {filteredAuctions.length === 1 ? "" : "s"} shown
               </p>
               {filtersActive ? (

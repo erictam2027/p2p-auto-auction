@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CountdownTimer } from "@/components/auctions/CountdownTimer";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -8,12 +9,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { DealerLiveAuction } from "@/lib/data/dealer-dashboard";
 import { formatCurrency } from "@/lib/utils/format";
-import { Clock } from "lucide-react";
+
+export type DealerLiveAuctionRow = {
+  id: string;
+  vin: string;
+  year: number;
+  make: string;
+  model: string;
+  currentBidCents: number;
+  endTime: string;
+};
 
 type ActiveAuctionsTableProps = {
-  auctions: DealerLiveAuction[];
+  auctions: DealerLiveAuctionRow[];
 };
 
 export function ActiveAuctionsTable({ auctions }: ActiveAuctionsTableProps) {
@@ -26,7 +35,7 @@ export function ActiveAuctionsTable({ auctions }: ActiveAuctionsTableProps) {
             <TableHead>VIN</TableHead>
             <TableHead>Current Bid</TableHead>
             <TableHead>Time Left</TableHead>
-            <TableHead>Reserve Status</TableHead>
+            <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -50,21 +59,18 @@ export function ActiveAuctionsTable({ auctions }: ActiveAuctionsTableProps) {
                   {formatCurrency(auction.currentBidCents)}
                 </TableCell>
                 <TableCell>
-                  <span className="inline-flex items-center gap-1.5 text-slate-700">
-                    <Clock className="size-3.5 text-slate-400" />
-                    {auction.endsIn}
-                  </span>
+                  {auction.endTime ? (
+                    <CountdownTimer endTime={auction.endTime} />
+                  ) : (
+                    <span className="text-sm text-slate-500">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge
                     variant="outline"
-                    className={
-                      auction.reserveMet
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-slate-200 bg-slate-50 text-slate-600"
-                    }
+                    className="border-emerald-200 bg-emerald-50 text-emerald-700"
                   >
-                    {auction.reserveMet ? "Met" : "Not Met"}
+                    Live
                   </Badge>
                 </TableCell>
               </TableRow>

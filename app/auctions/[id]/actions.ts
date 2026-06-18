@@ -1,5 +1,6 @@
 "use server";
 
+import { getSnipeExtendedEndTime, isAuctionLive } from "@/lib/auctions/vehicle-status";
 import { createClient } from "@/lib/supabase/server";
 
 type PlaceBidResult =
@@ -11,6 +12,14 @@ type PlaceBidResult =
       ok: false;
       error: string;
     };
+
+type VehicleRow = {
+  id: string;
+  current_bid: number | null;
+  status: string | null;
+  end_time: string | null;
+  seller_id: string | null;
+};
 
 function parseBidAmount(value: string) {
   const normalized = value.replace(/[$,\s]/g, "");
@@ -44,13 +53,50 @@ async function getHighestBidAmount(
 ) {
   const { data } = await supabase
     .from("bids")
-    .select("*")
+    .select("amount, bid_amount, current_bid")
     .eq("vehicle_id", vehicleId);
 
   return (data ?? []).reduce((highest, bid) => {
     const amount = readNumber(bid, ["amount", "bid_amount", "current_bid"]);
     return Math.max(highest, amount);
   }, 0);
+}
+
+async function loadVehicleForBidding(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  vehicleId: string,
+): Promise<VehicleRow | null> {
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select("id, current_bid, status, end_time, seller_id")
+    .eq("id", vehicleId)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data as VehicleRow;
+}
+
+function auctionClosedMessage() {
+  return "This auction has ended and is no longer accepting bids.";
+}
+
+async function applySnipeExtensionIfNeeded(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  vehicle: VehicleRow,
+) {
+  const extendedEndTime = getSnipeExtendedEndTime(vehicle.end_time);
+
+  if (!extendedEndTime) {
+    return;
+  }
+
+  await supabase
+    .from("vehicles")
+    .update({ end_time: extendedEndTime })
+    .eq("id", vehicle.id);
 }
 
 export async function placeBid(
@@ -78,17 +124,21 @@ export async function placeBid(
     };
   }
 
-  const { data: vehicle, error: vehicleError } = await supabase
-    .from("vehicles")
-    .select("id,current_bid")
-    .eq("id", vehicleId)
-    .single();
+  const vehicle = await loadVehicleForBidding(supabase, vehicleId);
 
-  if (vehicleError || !vehicle) {
+  if (!vehicle) {
     return {
       ok: false,
-      error: vehicleError?.message ?? "Vehicle listing was not found.",
+      error: "Vehicle listing was not found.",
     };
+  }
+
+  if (!isAuctionLive(vehicle)) {
+    return { ok: false, error: auctionClosedMessage() };
+  }
+
+  if (vehicle.seller_id === user.id) {
+    return { ok: false, error: "You cannot bid on your own listing." };
   }
 
   const currentBid = readNumber(vehicle, ["current_bid"]);
@@ -103,6 +153,7 @@ export async function placeBid(
 
   const { error: insertError } = await supabase.from("bids").insert({
     vehicle_id: vehicleId,
+    user_id: user.id,
     amount,
   });
 
@@ -124,6 +175,8 @@ export async function placeBid(
       error: updateError.message,
     };
   }
+
+  await applySnipeExtensionIfNeeded(supabase, vehicle);
 
   return { ok: true, newBidCents: amount * 100 };
 }
@@ -141,17 +194,21 @@ export async function placeQuickBid(vehicleId: string): Promise<PlaceBidResult> 
     };
   }
 
-  const { data: vehicle, error: vehicleError } = await supabase
-    .from("vehicles")
-    .select("id,current_bid")
-    .eq("id", vehicleId)
-    .single();
+  const vehicle = await loadVehicleForBidding(supabase, vehicleId);
 
-  if (vehicleError || !vehicle) {
+  if (!vehicle) {
     return {
       ok: false,
-      error: vehicleError?.message ?? "Vehicle listing was not found.",
+      error: "Vehicle listing was not found.",
     };
+  }
+
+  if (!isAuctionLive(vehicle)) {
+    return { ok: false, error: auctionClosedMessage() };
+  }
+
+  if (vehicle.seller_id === user.id) {
+    return { ok: false, error: "You cannot bid on your own listing." };
   }
 
   const currentBid = readNumber(vehicle, ["current_bid"]);
@@ -160,6 +217,7 @@ export async function placeQuickBid(vehicleId: string): Promise<PlaceBidResult> 
 
   const { error: insertError } = await supabase.from("bids").insert({
     vehicle_id: vehicleId,
+    user_id: user.id,
     amount,
   });
 
@@ -181,6 +239,8 @@ export async function placeQuickBid(vehicleId: string): Promise<PlaceBidResult> 
       error: updateError.message,
     };
   }
+
+  await applySnipeExtensionIfNeeded(supabase, vehicle);
 
   return { ok: true, newBidCents: amount * 100 };
 }

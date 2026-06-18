@@ -1,5 +1,13 @@
 import { SiteHeader } from "@/components/layout/site-header";
+import {
+  ProfileBidsTable,
+  ProfileWonAuctionsTable,
+} from "@/components/profile/profile-bids-table";
 import { ProfileSettingsForm } from "@/components/profile/profile-settings-form";
+import {
+  fetchProfileActiveBids,
+  fetchProfileWonAuctions,
+} from "@/lib/data/profile-bids";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Card,
@@ -60,6 +68,10 @@ export default async function ProfilePage() {
     .maybeSingle();
 
   const initials = getInitials(user.email);
+  const [activeBids, wonAuctions] = await Promise.all([
+    fetchProfileActiveBids(user.id),
+    fetchProfileWonAuctions(user.id),
+  ]);
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-slate-50 text-slate-900">
@@ -111,17 +123,25 @@ export default async function ProfilePage() {
               </TabsList>
 
               <TabsContent value="active-bids">
-                <EmptyState
-                  title="No active bids yet"
-                  description="Your live bids will appear here once you place offers on verified marketplace listings."
-                />
+                {activeBids.length > 0 ? (
+                  <ProfileBidsTable bids={activeBids} />
+                ) : (
+                  <EmptyState
+                    title="No active bids yet"
+                    description="Your live bids will appear here once you place offers on verified marketplace listings."
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="won-auctions">
-                <EmptyState
-                  title="No won auctions yet"
-                  description="Completed purchases will be tracked here with escrow, title, and delivery milestones."
-                />
+                {wonAuctions.length > 0 ? (
+                  <ProfileWonAuctionsTable auctions={wonAuctions} />
+                ) : (
+                  <EmptyState
+                    title="No won auctions yet"
+                    description="Completed purchases will be tracked here with escrow, title, and delivery milestones."
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="settings">

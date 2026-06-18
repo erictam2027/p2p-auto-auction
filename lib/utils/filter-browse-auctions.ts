@@ -64,19 +64,24 @@ export function filterBrowseAuctions(
   });
 }
 
+function getEndTimestamp(auction: TrendingAuction): number {
+  if (!auction.endTime) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const parsed = Date.parse(auction.endTime);
+  return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+}
+
 export function sortBrowseAuctions(
   auctions: TrendingAuction[],
   sort: BrowseSortOption,
-  parseEndsInMinutes: (endsIn: string) => number,
 ): TrendingAuction[] {
   const sorted = [...auctions];
 
   switch (sort) {
     case "ending-soonest":
-      return sorted.sort(
-        (a, b) =>
-          parseEndsInMinutes(a.endsIn) - parseEndsInMinutes(b.endsIn),
-      );
+      return sorted.sort((a, b) => getEndTimestamp(a) - getEndTimestamp(b));
     case "lowest-mileage":
       return sorted.sort((a, b) => a.mileage - b.mileage);
     case "highest-bid":

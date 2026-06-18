@@ -1,29 +1,51 @@
 "use client";
 
+import { updateDealerSettings } from "@/app/dashboard/settings/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { dealerProfileDefaults } from "@/lib/data/dealer-dashboard";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
-export function DealerSettingsForm() {
-  const [legalName, setLegalName] = useState(dealerProfileDefaults.legalName);
-  const [licenseNumber, setLicenseNumber] = useState(
-    dealerProfileDefaults.licenseNumber,
-  );
-  const [businessAddress, setBusinessAddress] = useState(
-    dealerProfileDefaults.businessAddress,
-  );
-  const [saved, setSaved] = useState(false);
+type DealerSettingsFormProps = {
+  dealershipName: string;
+  dealerLicense: string;
+  phone: string;
+};
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+export function DealerSettingsForm({
+  dealershipName,
+  dealerLicense,
+  phone,
+}: DealerSettingsFormProps) {
+  const [legalName, setLegalName] = useState(dealershipName);
+  const [licenseNumber, setLicenseNumber] = useState(dealerLicense);
+  const [phoneNumber, setPhoneNumber] = useState(phone);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setIsSubmitting(true);
+
+    const result = await updateDealerSettings({
+      dealershipName: legalName,
+      dealerLicense: licenseNumber,
+      phone: phoneNumber,
+    });
+
+    setIsSubmitting(false);
+
+    if (!result.ok) {
+      toast.error(result.message);
+      return;
+    }
+
+    toast.success("Dealership profile updated successfully.");
   }
 
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={(event) => void handleSubmit(event)}
       className="max-w-2xl space-y-6 rounded-md border border-slate-200 bg-white p-6 shadow-sm"
     >
       <div className="space-y-2">
@@ -51,13 +73,13 @@ export function DealerSettingsForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="business-address" className="text-sm font-medium text-slate-900">
-          Business Address
+        <label htmlFor="phone-number" className="text-sm font-medium text-slate-900">
+          Business Phone
         </label>
         <Input
-          id="business-address"
-          value={businessAddress}
-          onChange={(e) => setBusinessAddress(e.target.value)}
+          id="phone-number"
+          value={phoneNumber}
+          onChange={(e) => setPhoneNumber(e.target.value)}
           className="h-11 border-slate-300 bg-white text-slate-900"
         />
       </div>
@@ -65,13 +87,18 @@ export function DealerSettingsForm() {
       <div className="flex items-center gap-3 border-t border-slate-200 pt-4">
         <Button
           type="submit"
+          disabled={isSubmitting}
           className="bg-slate-900 text-white hover:bg-slate-800"
         >
-          Save Changes
+          {isSubmitting ? (
+            <>
+              <Loader2 className="animate-spin" />
+              Saving…
+            </>
+          ) : (
+            "Save Changes"
+          )}
         </Button>
-        {saved ? (
-          <p className="text-sm text-slate-600">Profile updated successfully.</p>
-        ) : null}
       </div>
     </form>
   );

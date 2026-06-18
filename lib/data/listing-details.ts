@@ -33,6 +33,10 @@ export type ListingDetail = TrendingAuction & {
   equipment: string[];
   dealerNotes: string[];
   comments: ListingComment[];
+  status: string;
+  winnerId: string;
+  isLive: boolean;
+  winnerLabel?: string;
 };
 
 const DEFAULT_HISTORY: VehicleHistoryEntry[] = [
@@ -114,6 +118,9 @@ function buildListing(auction: TrendingAuction): ListingDetail {
     dealerNotes: DEFAULT_DEALER_NOTES,
     comments: DEFAULT_COMMENTS,
     endTime: auction.endTime,
+    status: "live",
+    winnerId: "",
+    isLive: true,
   };
 
   if (auction.id === "auc-001") {

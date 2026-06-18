@@ -13,6 +13,7 @@ type LiveBidTrackerProps = {
   initialCurrentBidCents: number;
   initialBidsCount: number;
   location?: string;
+  isLive?: boolean;
 };
 
 function readCurrentBidCents(row: Record<string, unknown>) {
@@ -37,6 +38,7 @@ export function LiveBidTracker({
   initialCurrentBidCents,
   initialBidsCount,
   location,
+  isLive = true,
 }: LiveBidTrackerProps) {
   const [currentBidCents, setCurrentBidCents] = useState(initialCurrentBidCents);
   const [bidsCount, setBidsCount] = useState(initialBidsCount);
@@ -126,6 +128,11 @@ export function LiveBidTracker({
   }
 
   async function handlePlaceBid() {
+    if (!isLive) {
+      toast.error("This auction has ended.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     const result = await placeQuickBid(vehicleId);
@@ -175,6 +182,14 @@ export function LiveBidTracker({
         >
           <Loader2 className="size-4 animate-spin" />
           Checking payment profile…
+        </Button>
+      ) : !isLive ? (
+        <Button
+          type="button"
+          disabled
+          className="h-11 w-full bg-slate-300 text-base text-slate-600"
+        >
+          Auction Ended
         </Button>
       ) : requiresCardSetup ? (
         <Button
