@@ -193,10 +193,15 @@ function FilterSidebar({
 
 export function BrowseContent({
   initialAuctions,
+  initialSearch = "",
 }: {
   initialAuctions: TrendingAuction[];
+  initialSearch?: string;
 }) {
-  const [filters, setFilters] = useState<BrowseFilterState>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<BrowseFilterState>({
+    ...DEFAULT_FILTERS,
+    search: initialSearch,
+  });
   const [sort, setSort] = useState<BrowseSortOption>("ending-soonest");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 

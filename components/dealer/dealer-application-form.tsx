@@ -92,7 +92,8 @@ export function DealerApplicationForm({ defaultValues }: DealerApplicationFormPr
     }
 
     toast.success("Application submitted successfully! Our team will review it shortly.");
-    router.push("/");
+    router.push("/dealer-application");
+    router.refresh();
   }
 
   return (

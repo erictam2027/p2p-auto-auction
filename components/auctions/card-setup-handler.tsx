@@ -11,13 +11,14 @@ export function CardSetupHandler() {
 
   useEffect(() => {
     const cardSetup = searchParams.get("card_setup");
+    const sessionId = searchParams.get("session_id");
 
     if (cardSetup !== "success") {
       return;
     }
 
     async function completeSetup() {
-      const result = await confirmCardOnFile();
+      const result = await confirmCardOnFile(sessionId ?? undefined);
 
       if (!result.ok) {
         toast.error(result.message);
@@ -25,6 +26,7 @@ export function CardSetupHandler() {
       }
 
       toast.success("Payment method saved. You can now place bids.");
+      window.dispatchEvent(new CustomEvent("apex:card-on-file-updated"));
       router.replace(window.location.pathname, { scroll: false });
     }
 

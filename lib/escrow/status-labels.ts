@@ -33,3 +33,11 @@ export function getPlatformFeeStatusLabel(status: PlatformFeeStatus): string {
 export function isEscrowCheckoutComplete(status: EscrowStatus): boolean {
   return status === "payment_received" || status === "completed";
 }
+
+export function canPayPlatformFee(status: EscrowStatus): boolean {
+  return (
+    status === "checkout_started" ||
+    status === "payment_received" ||
+    status === "completed"
+  );
+}

@@ -25,9 +25,13 @@ const NAV_ITEMS = [
 
 type DashboardSidebarProps = {
   unreadMessageCount?: number;
+  dealershipName?: string;
 };
 
-export function DashboardSidebar({ unreadMessageCount = 0 }: DashboardSidebarProps) {
+export function DashboardSidebar({
+  unreadMessageCount = 0,
+  dealershipName = "Dealer Portal",
+}: DashboardSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -85,8 +89,8 @@ export function DashboardSidebar({ unreadMessageCount = 0 }: DashboardSidebarPro
 
       <div className="border-t border-slate-200 p-4">
         <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
-          <p className="text-xs font-medium text-slate-900">Pacific Coast Motors</p>
-          <p className="text-[11px] text-slate-600">Licensed Dealer · CA</p>
+          <p className="text-xs font-medium text-slate-900">{dealershipName}</p>
+          <p className="text-[11px] text-slate-600">Licensed Dealer</p>
         </div>
         <Link
           href="/"

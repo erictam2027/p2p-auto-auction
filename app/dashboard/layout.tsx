@@ -33,19 +33,26 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, verification_status")
+    .select("role, verification_status, dealership_name")
     .eq("id", user.id)
     .maybeSingle();
 
   if (!canAccessDashboard(profile)) {
-    redirect("/dealer-application");
+    if (profile?.role === "dealer") {
+      redirect("/dealer-application");
+    }
+
+    redirect("/profile");
   }
 
   const unreadMessageCount = await getUnreadMessageCount(user.id);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <DashboardSidebar unreadMessageCount={unreadMessageCount} />
+      <DashboardSidebar
+        unreadMessageCount={unreadMessageCount}
+        dealershipName={profile?.dealership_name ?? "Dealer Portal"}
+      />
       <div className="lg:pl-64">{children}</div>
     </div>
   );

@@ -3,26 +3,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/auth/user-menu";
-import { Gavel, Menu, Search } from "lucide-react";
-
-function SearchField({ id, className }: { id: string; className?: string }) {
-  return (
-    <div className={className}>
-      <label htmlFor={id} className="sr-only">
-        Search vehicles
-      </label>
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-        <input
-          id={id}
-          type="search"
-          placeholder="Search by make, model, VIN, or keyword"
-          className="h-10 w-full rounded-md border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-        />
-      </div>
-    </div>
-  );
-}
+import { SiteHeaderSearch } from "@/components/layout/site-header-search";
+import { SiteMobileNav } from "@/components/layout/site-mobile-nav";
+import { Gavel } from "lucide-react";
 
 export async function SiteHeader() {
   const supabase = await createClient();
@@ -56,7 +39,7 @@ export async function SiteHeader() {
             </span>
           </Link>
 
-          <SearchField id="site-search" className="hidden min-w-0 flex-1 md:block" />
+          <SiteHeaderSearch id="site-search" className="hidden min-w-0 flex-1 md:block" />
 
           <nav className="hidden items-center gap-1 lg:flex">
             <Link
@@ -77,12 +60,23 @@ export async function SiteHeader() {
 
           <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
             {user ? (
-              <UserMenu user={user} />
+              <>
+                <UserMenu user={user} />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50 sm:hidden"
+                  nativeButton={false}
+                  render={<Link href="/profile" />}
+                >
+                  Profile
+                </Button>
+              </>
             ) : (
               <Button
                 variant="outline"
                 size="sm"
-                className="hidden border-slate-900 bg-white text-slate-900 hover:bg-slate-50 sm:inline-flex"
+                className="border-slate-900 bg-white text-slate-900 hover:bg-slate-50"
                 nativeButton={false}
                 render={<Link href="/login" />}
               >
@@ -119,19 +113,17 @@ export async function SiteHeader() {
                 Apply as Dealer
               </Button>
             ) : null}
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-slate-700 hover:bg-slate-50 lg:hidden"
-              aria-label="Open menu"
-            >
-              <Menu className="size-5" />
-            </Button>
+            <SiteMobileNav
+              isAdminUser={isAdminUser}
+              isVerifiedDealerUser={isVerifiedDealerUser}
+              showApplyAsDealer={showApplyAsDealer}
+              isSignedIn={Boolean(user)}
+            />
           </div>
         </div>
 
         <div className="pb-3 md:hidden">
-          <SearchField id="site-search-mobile" />
+          <SiteHeaderSearch id="site-search-mobile" />
         </div>
       </div>
     </header>

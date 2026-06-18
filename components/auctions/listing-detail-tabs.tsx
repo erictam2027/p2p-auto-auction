@@ -1,7 +1,6 @@
 "use client";
 
 import type { ListingDetail } from "@/lib/data/listing-details";
-import { Button } from "@/components/ui/button";
 import {
   Tabs,
   TabsContent,
@@ -107,40 +106,15 @@ export function ListingDetailTabs({ listing }: ListingDetailTabsProps) {
 
       <TabsContent value="comments" className="pt-2">
         <div className="rounded-md border border-slate-200 bg-white p-5">
-          <h3 className="text-sm font-semibold text-slate-900">Ask a Question</h3>
-          <p className="mt-1 text-sm text-slate-600">
-            Public Q&amp;A helps all bidders evaluate this vehicle before placing offers.
+          <h3 className="text-sm font-semibold text-slate-900">Questions about this vehicle?</h3>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            Use the Message Seller button on this listing to ask about condition, history,
+            transport, or pickup logistics. Verified dealers respond through the secure
+            ApexAuction inbox.
           </p>
-
-          <div className="mt-4 space-y-3">
-            <textarea
-              placeholder="Ask a question about condition, history, or logistics..."
-              className="min-h-24 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-            />
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                className="bg-slate-900 text-white hover:bg-slate-800"
-              >
-                Post Question
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-8 space-y-4 border-t border-slate-200 pt-6">
-            <h4 className="text-sm font-semibold text-slate-900">Recent Questions</h4>
-
-            <article className="rounded-md border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-slate-900">Verified Buyer</p>
-                <time className="text-xs text-slate-500">2 days ago</time>
-              </div>
-              <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                Is the inspection report available before auction close? Interested in
-                confirming tire tread depth and brake pad measurements.
-              </p>
-            </article>
-          </div>
+          <p className="mt-4 text-xs text-slate-500">
+            Public Q&amp;A threads will be enabled in a future release.
+          </p>
         </div>
       </TabsContent>
     </Tabs>

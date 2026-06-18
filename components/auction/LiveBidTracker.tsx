@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils/format";
 import { CreditCard, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -15,6 +16,8 @@ type LiveBidTrackerProps = {
   location?: string;
   isLive?: boolean;
 };
+
+type BidAccessState = "loading" | "signed_out" | "needs_card" | "ready";
 
 function readCurrentBidCents(row: Record<string, unknown>) {
   const value = row.current_bid;
@@ -43,18 +46,23 @@ export function LiveBidTracker({
   const [currentBidCents, setCurrentBidCents] = useState(initialCurrentBidCents);
   const [bidsCount, setBidsCount] = useState(initialBidsCount);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasCardOnFile, setHasCardOnFile] = useState<boolean | null>(null);
+  const [bidAccessState, setBidAccessState] = useState<BidAccessState>("loading");
 
   useEffect(() => {
-    const supabase = createClient();
+    let cancelled = false;
 
-    async function loadProfile() {
+    async function loadProfileState() {
+      const supabase = createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
+      if (cancelled) {
+        return;
+      }
+
       if (!user) {
-        setHasCardOnFile(false);
+        setBidAccessState("signed_out");
         return;
       }
 
@@ -64,10 +72,43 @@ export function LiveBidTracker({
         .eq("id", user.id)
         .maybeSingle();
 
-      setHasCardOnFile(Boolean(profile?.has_card_on_file));
+      if (!cancelled) {
+        setBidAccessState(profile?.has_card_on_file ? "ready" : "needs_card");
+      }
     }
 
-    void loadProfile();
+    void loadProfileState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleCardUpdate() {
+      void (async () => {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          setBidAccessState("signed_out");
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("has_card_on_file")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        setBidAccessState(profile?.has_card_on_file ? "ready" : "needs_card");
+      })();
+    }
+
+    window.addEventListener("apex:card-on-file-updated", handleCardUpdate);
+    return () => window.removeEventListener("apex:card-on-file-updated", handleCardUpdate);
   }, []);
 
   useEffect(() => {
@@ -149,8 +190,7 @@ export function LiveBidTracker({
     toast.success("Bid placed successfully");
   }
 
-  const isLoadingProfile = hasCardOnFile === null;
-  const requiresCardSetup = hasCardOnFile === false;
+  const loginHref = `/login?next=${encodeURIComponent(`/auctions/${vehicleId}`)}`;
 
   return (
     <div className="space-y-5">
@@ -174,7 +214,7 @@ export function LiveBidTracker({
         </p>
       </div>
 
-      {isLoadingProfile ? (
+      {bidAccessState === "loading" ? (
         <Button
           type="button"
           disabled
@@ -191,7 +231,16 @@ export function LiveBidTracker({
         >
           Auction Ended
         </Button>
-      ) : requiresCardSetup ? (
+      ) : bidAccessState === "signed_out" ? (
+        <Button
+          type="button"
+          nativeButton={false}
+          render={<Link href={loginHref} />}
+          className="h-11 w-full bg-slate-900 text-base text-white hover:bg-slate-800"
+        >
+          Sign in to bid
+        </Button>
+      ) : bidAccessState === "needs_card" ? (
         <Button
           type="button"
           onClick={() => void handleAddCreditCard()}

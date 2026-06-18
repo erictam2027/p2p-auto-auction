@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   getEscrowStatusLabel,
   getPlatformFeeStatusLabel,
+  canPayPlatformFee,
   isEscrowCheckoutComplete,
 } from "@/lib/escrow/status-labels";
 import type { EscrowTransactionSummary } from "@/lib/escrow/types";
@@ -33,7 +34,8 @@ export function WinnerCheckoutPanel({
   const platformFeeStatus = escrow?.platformFeeStatus ?? "pending";
   const platformFeeCents =
     escrow?.platformFeeCents ?? Math.round(salePriceCents * 0.05);
-  const checkoutComplete = isEscrowCheckoutComplete(escrowStatus);
+  const checkoutStarted = canPayPlatformFee(escrowStatus);
+  const escrowFullyComplete = isEscrowCheckoutComplete(escrowStatus);
 
   async function handleStartCheckout() {
     setIsStartingCheckout(true);
@@ -111,7 +113,7 @@ export function WinnerCheckoutPanel({
         </div>
       </div>
 
-      {!checkoutComplete ? (
+      {!checkoutStarted ? (
         <Button
           type="button"
           disabled={isStartingCheckout}
@@ -130,9 +132,14 @@ export function WinnerCheckoutPanel({
             </>
           )}
         </Button>
-      ) : null}
+      ) : (
+        <p className="text-sm text-slate-700">
+          KeySavvy checkout is in progress. Finish payment in KeySavvy, then pay the
+          platform fee below.
+        </p>
+      )}
 
-      {checkoutComplete && platformFeeStatus === "pending" ? (
+      {checkoutStarted && platformFeeStatus === "pending" ? (
         <Button
           type="button"
           variant="outline"
@@ -151,7 +158,7 @@ export function WinnerCheckoutPanel({
         </Button>
       ) : null}
 
-      {checkoutComplete && platformFeeStatus === "paid" ? (
+      {platformFeeStatus === "paid" && escrowFullyComplete ? (
         <p className="text-sm text-emerald-800">
           Escrow checkout and platform fee are complete. KeySavvy will coordinate title
           transfer and vehicle pickup.

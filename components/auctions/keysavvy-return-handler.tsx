@@ -13,6 +13,7 @@ export function KeySavvyReturnHandler() {
   useEffect(() => {
     const keySavvyStatus = searchParams.get("keysavvy");
     const platformFeeStatus = searchParams.get("platform_fee");
+    const sessionId = searchParams.get("session_id");
 
     if (!keySavvyStatus && !platformFeeStatus) {
       return;
@@ -29,7 +30,7 @@ export function KeySavvyReturnHandler() {
           toast.error(result.message);
         } else {
           toast.success(
-            "Welcome back from KeySavvy. Complete the platform fee when escrow payment is confirmed.",
+            "KeySavvy checkout recorded. Pay the platform fee to finish purchase setup.",
           );
         }
       }
@@ -39,7 +40,7 @@ export function KeySavvyReturnHandler() {
       }
 
       if (platformFeeStatus === "success") {
-        const result = await confirmPlatformFeePayment(vehicleId);
+        const result = await confirmPlatformFeePayment(vehicleId, sessionId ?? undefined);
 
         if (!result.ok) {
           toast.error(result.message);

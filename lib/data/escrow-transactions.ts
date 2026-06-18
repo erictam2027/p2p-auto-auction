@@ -10,13 +10,13 @@ export async function fetchEscrowForVehicle(
 ): Promise<EscrowTransactionSummary | null> {
   const supabase = await createClient();
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("escrow_transactions")
     .select("*")
     .eq("vehicle_id", vehicleId)
     .maybeSingle();
 
-  if (!data) {
+  if (error || !data) {
     return null;
   }
 

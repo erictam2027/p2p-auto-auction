@@ -1,3 +1,4 @@
+import { canPayPlatformFee } from "@/lib/escrow/status-labels";
 import { getStripe } from "@/lib/stripe/server";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
 
     const { data: escrow, error: escrowError } = await supabase
       .from("escrow_transactions")
-      .select("id, buyer_id, platform_fee_cents, platform_fee_status, sale_price")
+      .select("id, buyer_id, platform_fee_cents, platform_fee_status, sale_price, status")
       .eq("vehicle_id", vehicleId)
       .maybeSingle();
 
@@ -36,6 +37,13 @@ export async function POST(request: Request) {
 
     if (escrow.buyer_id !== user.id) {
       return NextResponse.json({ error: "Only the winning bidder can pay the platform fee." }, { status: 403 });
+    }
+
+    if (!canPayPlatformFee(escrow.status)) {
+      return NextResponse.json(
+        { error: "Start KeySavvy checkout before paying the platform fee." },
+        { status: 400 },
+      );
     }
 
     if (escrow.platform_fee_status === "paid") {
@@ -62,7 +70,7 @@ export async function POST(request: Request) {
           },
         },
       ],
-      success_url: `${listingUrl}?platform_fee=success`,
+      success_url: `${listingUrl}?platform_fee=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${listingUrl}?platform_fee=cancelled`,
       customer_email: user.email ?? undefined,
       metadata: {

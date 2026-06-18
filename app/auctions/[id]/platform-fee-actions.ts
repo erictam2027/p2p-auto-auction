@@ -1,5 +1,6 @@
 "use server";
 
+import { verifyCompletedPaymentSession } from "@/lib/stripe/verify-session";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -9,11 +10,17 @@ export type ConfirmPlatformFeeResult =
 
 export async function confirmPlatformFeePayment(
   vehicleId: string,
+  sessionId?: string,
 ): Promise<ConfirmPlatformFeeResult> {
   const trimmedVehicleId = vehicleId.trim();
+  const trimmedSessionId = sessionId?.trim();
 
   if (!trimmedVehicleId) {
     return { ok: false, message: "Vehicle ID is required." };
+  }
+
+  if (!trimmedSessionId) {
+    return { ok: false, message: "Missing Stripe checkout session." };
   }
 
   const supabase = await createClient();
@@ -43,6 +50,16 @@ export async function confirmPlatformFeePayment(
     return { ok: true };
   }
 
+  const verification = await verifyCompletedPaymentSession(
+    trimmedSessionId,
+    user.id,
+    escrow.id,
+  );
+
+  if (!verification.ok) {
+    return verification;
+  }
+
   const { error: updateError } = await supabase
     .from("escrow_transactions")
     .update({
@@ -57,6 +74,7 @@ export async function confirmPlatformFeePayment(
 
   revalidatePath(`/auctions/${trimmedVehicleId}`);
   revalidatePath("/profile");
+  revalidatePath("/dashboard/payouts");
 
   return { ok: true };
 }

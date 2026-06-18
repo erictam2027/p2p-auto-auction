@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const session = await stripe.checkout.sessions.create({
       mode: "setup",
       payment_method_types: ["card"],
-      success_url: `${listingUrl}?card_setup=success`,
+      success_url: `${listingUrl}?card_setup=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${listingUrl}?card_setup=cancelled`,
       customer_email: user.email ?? undefined,
       metadata: {

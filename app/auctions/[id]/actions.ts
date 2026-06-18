@@ -1,6 +1,7 @@
 "use server";
 
 import { getSnipeExtendedEndTime, isAuctionLive } from "@/lib/auctions/vehicle-status";
+import { requireCardOnFile } from "@/lib/bidding/require-card-on-file";
 import { createClient } from "@/lib/supabase/server";
 
 type PlaceBidResult =
@@ -141,6 +142,12 @@ export async function placeBid(
     return { ok: false, error: "You cannot bid on your own listing." };
   }
 
+  const cardCheck = await requireCardOnFile(supabase, user.id);
+
+  if (!cardCheck.ok) {
+    return { ok: false, error: cardCheck.error };
+  }
+
   const currentBid = readNumber(vehicle, ["current_bid"]);
   const highestBid = Math.max(currentBid, await getHighestBidAmount(supabase, vehicleId));
 
@@ -209,6 +216,12 @@ export async function placeQuickBid(vehicleId: string): Promise<PlaceBidResult> 
 
   if (vehicle.seller_id === user.id) {
     return { ok: false, error: "You cannot bid on your own listing." };
+  }
+
+  const cardCheck = await requireCardOnFile(supabase, user.id);
+
+  if (!cardCheck.ok) {
+    return { ok: false, error: cardCheck.error };
   }
 
   const currentBid = readNumber(vehicle, ["current_bid"]);

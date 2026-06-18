@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "setup:db": "node scripts/setup-database.mjs",
+    "cron:close-auctions": "node scripts/run-close-auctions.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -36,6 +38,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "pg": "^8.21.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

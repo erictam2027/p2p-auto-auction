@@ -29,7 +29,7 @@ export function UserMenu({ user }: UserMenuProps) {
   }, []);
 
   return (
-    <div ref={ref} className="relative hidden sm:block">
+    <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}

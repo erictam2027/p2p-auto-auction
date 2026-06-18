@@ -33,11 +33,11 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  if (isProtectedPath(request.nextUrl.pathname)) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
+  if (isProtectedPath(request.nextUrl.pathname)) {
     if (!user) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
