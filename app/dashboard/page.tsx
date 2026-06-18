@@ -19,9 +19,23 @@ type VehicleRow = {
   vin: string | null;
   current_bid: number | null;
   image_url: string | null;
-  time_left: string | null;
+  end_time: string | null;
   status: string | null;
 };
+
+function readEndTime(endTime: string | null): string {
+  if (!endTime || endTime.trim().length === 0) {
+    return "";
+  }
+
+  const parsed = Date.parse(endTime);
+
+  if (!Number.isFinite(parsed)) {
+    return "";
+  }
+
+  return new Date(parsed).toISOString();
+}
 
 function getVehicleStatus(vehicle: VehicleRow) {
   const status = vehicle.status?.toLowerCase();
@@ -30,9 +44,9 @@ function getVehicleStatus(vehicle: VehicleRow) {
     return "Ended" as const;
   }
 
-  const timeLeft = vehicle.time_left?.toLowerCase() ?? "";
+  const endTime = readEndTime(vehicle.end_time);
 
-  if (timeLeft === "ended" || timeLeft === "0" || timeLeft === "0:00") {
+  if (endTime && Date.parse(endTime) <= Date.now()) {
     return "Ended" as const;
   }
 
@@ -67,7 +81,7 @@ export default async function DashboardPage() {
 
   const { data: vehicles, error } = await supabase
     .from("vehicles")
-    .select("id, year, make, model, vin, current_bid, image_url, time_left, status")
+    .select("id, year, make, model, vin, current_bid, image_url, end_time, status")
     .eq("seller_id", user.id)
     .order("year", { ascending: false });
 
@@ -83,6 +97,7 @@ export default async function DashboardPage() {
     vin: vehicle.vin ?? "—",
     currentBid: vehicle.current_bid ?? 0,
     imageUrl: vehicle.image_url ?? "",
+    endTime: readEndTime(vehicle.end_time),
     status: getVehicleStatus(vehicle as VehicleRow),
   }));
 

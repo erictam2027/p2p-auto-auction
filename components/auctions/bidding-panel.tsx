@@ -1,6 +1,7 @@
 "use client";
 
 import { LiveBidTracker } from "@/components/auction/LiveBidTracker";
+import { CountdownTimer } from "@/components/auctions/CountdownTimer";
 import { ListingTrustStrip } from "@/components/auctions/listing-trust-strip";
 import type { ListingDetail } from "@/lib/data/listing-details";
 import { useEffect, useState } from "react";
@@ -9,31 +10,39 @@ type BiddingPanelProps = {
   listing: ListingDetail;
 };
 
-const SNIPE_THRESHOLD_SECONDS = 2 * 60;
-
-function formatCountdown(totalSeconds: number): string {
-  if (totalSeconds >= 3600) {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
-  }
-
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
+const SNIPE_THRESHOLD_MS = 2 * 60 * 1000;
 
 export function BiddingPanel({ listing }: BiddingPanelProps) {
-  const [secondsLeft, setSecondsLeft] = useState(listing.endsInSeconds);
+  const [remainingMs, setRemainingMs] = useState(() => {
+    if (!listing.endTime) {
+      return 0;
+    }
+
+    return new Date(listing.endTime).getTime() - Date.now();
+  });
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSecondsLeft((current) => Math.max(0, current - 1));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!listing.endTime) {
+      return;
+    }
 
-  const inSnipeWindow = secondsLeft > 0 && secondsLeft <= SNIPE_THRESHOLD_SECONDS;
+    const endTimestamp = new Date(listing.endTime).getTime();
+
+    if (!Number.isFinite(endTimestamp)) {
+      return;
+    }
+
+    function updateRemaining() {
+      setRemainingMs(endTimestamp - Date.now());
+    }
+
+    updateRemaining();
+    const interval = setInterval(updateRemaining, 1000);
+
+    return () => clearInterval(interval);
+  }, [listing.endTime]);
+
+  const inSnipeWindow = remainingMs > 0 && remainingMs <= SNIPE_THRESHOLD_MS;
 
   return (
     <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
@@ -49,13 +58,18 @@ export function BiddingPanel({ listing }: BiddingPanelProps) {
         <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
           Time remaining
         </p>
-        <p
-          className={`mt-1 text-2xl font-semibold tabular-nums ${
-            inSnipeWindow ? "text-orange-600" : "text-slate-900"
-          }`}
-        >
-          {secondsLeft > 0 ? formatCountdown(secondsLeft) : "Ended"}
-        </p>
+        {listing.endTime ? (
+          <CountdownTimer
+            endTime={listing.endTime}
+            className={
+              inSnipeWindow
+                ? "mt-1 block text-2xl font-semibold text-orange-600"
+                : "mt-1 block text-2xl font-semibold text-slate-900"
+            }
+          />
+        ) : (
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">Ended</p>
+        )}
         {inSnipeWindow ? (
           <p className="mt-1 text-xs text-slate-600">
             Snipe protection active — new bids extend to 2:00

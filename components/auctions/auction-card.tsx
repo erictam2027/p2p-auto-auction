@@ -1,9 +1,13 @@
 import Link from "next/link";
-import { TrustBadgeGroup } from "@/components/trust/trust-badge";
-import { Button } from "@/components/ui/button";
+import { CountdownTimer } from "@/components/auctions/CountdownTimer";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import type { TrendingAuction } from "@/lib/data/trending-auctions";
-import { formatCurrency, formatMileage } from "@/lib/utils/format";
-import { Clock, MapPin } from "lucide-react";
+import { formatCurrency } from "@/lib/utils/format";
+import { Car } from "lucide-react";
 
 type AuctionCardProps = {
   auction: TrendingAuction;
@@ -13,76 +17,54 @@ export function AuctionCard({ auction }: AuctionCardProps) {
   const title = `${auction.year} ${auction.make} ${auction.model}`;
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
-      <Link href={`/auctions/${auction.id}`} className="relative block aspect-[16/10] bg-slate-100">
-        {auction.imageUrl ? (
-          <div
-            aria-label={title}
-            role="img"
-            className="h-full w-full bg-cover bg-center"
-            style={{ backgroundImage: `url(${auction.imageUrl})` }}
-          />
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-400">
-            <svg
-              viewBox="0 0 120 48"
-              className="h-8 w-20"
-              fill="currentColor"
-              aria-hidden
-            >
-              <path d="M8 32h8l4-12h56l4 12h8l-6-18H14L8 32zm14-8h76l-3-8H25l-3 8z" />
-              <circle cx="28" cy="36" r="6" />
-              <circle cx="92" cy="36" r="6" />
-            </svg>
-            <span className="text-xs text-slate-500">Photo pending</span>
+    <Card className="group overflow-hidden border-slate-200 bg-white py-0 shadow-sm transition-shadow hover:shadow-md">
+      <Link href={`/auctions/${auction.id}`} className="block">
+        <div className="overflow-hidden bg-slate-100">
+          <div className="relative aspect-video">
+            {auction.imageUrl ? (
+              <div
+                aria-label={title}
+                role="img"
+                className="h-full w-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                style={{ backgroundImage: `url(${auction.imageUrl})` }}
+              />
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-400">
+                <Car className="size-8" />
+                <span className="text-xs text-slate-500">Photo pending</span>
+              </div>
+            )}
           </div>
-        )}
-
-        <div className="absolute left-2 top-2 flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
-          <Clock className="size-3 text-slate-500" />
-          {auction.endsIn}
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col gap-3 p-4">
+      <CardContent className="px-5 pt-5 pb-4">
         <Link href={`/auctions/${auction.id}`} className="block hover:opacity-90">
-          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-          <p className="mt-0.5 text-sm text-slate-600">{auction.trim}</p>
+          <h3 className="text-base font-semibold tracking-tight text-slate-900">
+            {title}
+          </h3>
+          <p className="mt-1 text-sm text-slate-600">{auction.trim}</p>
         </Link>
+      </CardContent>
 
-        <dl className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-sm">
-          <div>
-            <dt className="text-xs text-slate-600">Current bid</dt>
-            <dd className="mt-0.5 font-semibold text-slate-900">
-              {formatCurrency(auction.currentBidCents)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-slate-600">Bids</dt>
-            <dd className="mt-0.5 font-semibold text-slate-900">{auction.bidCount}</dd>
-          </div>
-        </dl>
-
-        <div className="flex items-center gap-3 text-xs text-slate-600">
-          <span className="inline-flex items-center gap-1">
-            <MapPin className="size-3 shrink-0" />
-            {auction.location}
-          </span>
-          <span>{formatMileage(auction.mileage)} mi</span>
+      <CardFooter className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-5 py-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Current Bid
+          </p>
+          <p className="mt-0.5 text-base font-bold text-slate-900">
+            {formatCurrency(auction.currentBidCents)}
+          </p>
         </div>
 
-        <TrustBadgeGroup
-          nmvtisVerified={auction.nmvtisVerified}
-          inspectionAvailable={auction.inspectionAvailable}
-          compact
-        />
-
-        <Link href={`/auctions/${auction.id}`} className="mt-auto">
-          <Button className="w-full bg-slate-900 text-white hover:bg-slate-800">
-            Place Bid
-          </Button>
-        </Link>
-      </div>
-    </article>
+        <div className="flex items-center gap-2">
+          <span
+            className="size-2 animate-pulse rounded-full bg-red-500"
+            aria-hidden
+          />
+          <CountdownTimer endTime={auction.endTime} />
+        </div>
+      </CardFooter>
+    </Card>
   );
 }

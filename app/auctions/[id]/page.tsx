@@ -7,7 +7,6 @@ import { ListingDetailTabs } from "@/components/auctions/listing-detail-tabs";
 import { ListingQuickSpecs } from "@/components/auctions/listing-quick-specs";
 import { SiteHeader } from "@/components/layout/site-header";
 import type { ListingDetail, VehicleHistoryEntry } from "@/lib/data/listing-details";
-import { parseEndsInMinutes } from "@/lib/data/browse-auctions";
 import { createClient } from "@/lib/supabase/server";
 import { formatMileage } from "@/lib/utils/format";
 import { ChevronRight, MapPin } from "lucide-react";
@@ -86,6 +85,22 @@ function readStringArray(row: VehicleRow, keys: string[], fallback: string[]) {
   return fallback;
 }
 
+function readEndTime(row: VehicleRow): string {
+  const value = row.end_time;
+
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "";
+  }
+
+  const parsed = Date.parse(value);
+
+  if (!Number.isFinite(parsed)) {
+    return "";
+  }
+
+  return new Date(parsed).toISOString();
+}
+
 function vehicleToListing(
   vehicle: VehicleRow,
   highestBid: number,
@@ -98,7 +113,7 @@ function vehicleToListing(
   )} ${readString(vehicle, ["model"], "Listing")}`;
   const mileage = readNumber(vehicle, ["mileage", "odometer"], 0);
   const location = readString(vehicle, ["location", "city_state", "city"], "Location pending");
-  const endsIn = readString(vehicle, ["time_left", "ends_in", "endsIn"], "Coming soon");
+  const endTime = readEndTime(vehicle);
   const titleStatus = readString(
     vehicle,
     ["title_status", "titleStatus"],
@@ -126,13 +141,15 @@ function vehicleToListing(
     location,
     currentBidCents: highestBid * 100,
     bidCount,
-    endsIn,
+    endsIn: endTime ? "" : "Ended",
+    endTime,
     imageUrl: readString(vehicle, ["image_url", "imageUrl"], ""),
     nmvtisVerified: true,
     inspectionAvailable: false,
     vin: readString(vehicle, ["vin"], "Pending"),
     sellerId: readString(vehicle, ["seller_id", "owner_id", "dealer_id", "user_id"]),
     sellerName: readString(vehicle, ["dealership_name", "seller_name"], "Seller"),
+    carfaxUrl: readString(vehicle, ["carfax_url", "carfaxUrl"]),
     imageCount: 1,
     engine: readString(vehicle, ["engine"], "Pending verification"),
     transmission: readString(vehicle, ["transmission"], "Pending verification"),
@@ -162,7 +179,6 @@ function vehicleToListing(
       "This listing was synced from dealer inventory and is being prepared for public bidding.",
     ]),
     comments: [],
-    endsInSeconds: parseEndsInMinutes(endsIn) * 60,
   };
 }
 
@@ -170,7 +186,9 @@ async function getAuctionListing(id: string) {
   const supabase = await createClient();
   const { data: vehicle, error: vehicleError } = await supabase
     .from("vehicles")
-    .select("*")
+    .select(
+      "id, year, make, model, trim, mileage, location, city_state, vin, seller_id, image_url, carfax_url, engine, transmission, drivetrain, exterior_color, interior_color, title_status, highlights, known_flaws, recent_service, modifications, equipment, dealer_notes, end_time, current_bid, status",
+    )
     .eq("id", id)
     .single();
 

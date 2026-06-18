@@ -1,4 +1,4 @@
-import { browseAuctions, parseEndsInMinutes } from "@/lib/data/browse-auctions";
+import { browseAuctions } from "@/lib/data/browse-auctions";
 import type { TrendingAuction } from "@/lib/data/trending-auctions";
 
 export type ListingComment = {
@@ -17,6 +17,7 @@ export type ListingDetail = TrendingAuction & {
   vin: string;
   sellerId: string;
   sellerName: string;
+  carfaxUrl: string;
   imageCount: number;
   engine: string;
   transmission: string;
@@ -32,7 +33,6 @@ export type ListingDetail = TrendingAuction & {
   equipment: string[];
   dealerNotes: string[];
   comments: ListingComment[];
-  endsInSeconds: number;
 };
 
 const DEFAULT_HISTORY: VehicleHistoryEntry[] = [
@@ -93,6 +93,7 @@ function buildListing(auction: TrendingAuction): ListingDetail {
     vin: "WP0AB2A91NS2" + auction.id.slice(-4).toUpperCase().padStart(4, "0"),
     sellerId: "",
     sellerName: "Seller",
+    carfaxUrl: "",
     imageCount: 6,
     engine: "Pending verification",
     transmission: "Pending verification",
@@ -112,7 +113,7 @@ function buildListing(auction: TrendingAuction): ListingDetail {
     equipment: DEFAULT_EQUIPMENT,
     dealerNotes: DEFAULT_DEALER_NOTES,
     comments: DEFAULT_COMMENTS,
-    endsInSeconds: parseEndsInMinutes(auction.endsIn) * 60,
+    endTime: auction.endTime,
   };
 
   if (auction.id === "auc-001") {

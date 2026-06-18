@@ -64,6 +64,7 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
   const titleStatus = readString(formData, "titleStatus");
   const highlights = readString(formData, "highlights");
   const knownFlaws = readString(formData, "knownFlaws");
+  const carfax = formData.get("carfax");
 
   if (!year || !make || !model || !vin) {
     return { ok: false, message: "Year, make, model, and VIN are required." };
@@ -92,6 +93,33 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
     data: { publicUrl },
   } = supabase.storage.from("vehicle-images").getPublicUrl(storagePath);
 
+  let carfaxUrl: string | null = null;
+
+  if (carfax instanceof File && carfax.size > 0) {
+    if (carfax.type !== "application/pdf") {
+      return { ok: false, message: "Carfax report must be a PDF file." };
+    }
+
+    const carfaxPath = `${user.id}/${Date.now()}-${vin}-carfax.pdf`;
+
+    const { error: carfaxUploadError } = await supabase.storage
+      .from("vehicle-documents")
+      .upload(carfaxPath, carfax, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: "application/pdf",
+      });
+
+    if (carfaxUploadError) {
+      return { ok: false, message: carfaxUploadError.message };
+    }
+
+    carfaxUrl = supabase.storage.from("vehicle-documents").getPublicUrl(carfaxPath)
+      .data.publicUrl;
+  }
+
+  const endTime = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
   const { error: insertError } = await supabase.from("vehicles").insert({
     year,
     make,
@@ -107,9 +135,10 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
     highlights: splitLines(highlights),
     known_flaws: splitLines(knownFlaws),
     image_url: publicUrl,
+    carfax_url: carfaxUrl,
     seller_id: user.id,
     current_bid: 0,
-    time_left: "Coming soon",
+    end_time: endTime,
     status: "live",
   });
 

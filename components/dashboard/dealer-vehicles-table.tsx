@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CountdownTimer } from "@/components/auctions/CountdownTimer";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -20,6 +21,7 @@ export type DealerVehicleRow = {
   vin: string;
   currentBid: number;
   imageUrl: string;
+  endTime: string;
   status: "Live" | "Ended";
 };
 
@@ -49,6 +51,7 @@ export function DealerVehiclesTable({ vehicles }: DealerVehiclesTableProps) {
             <TableHead>Vehicle</TableHead>
             <TableHead>VIN</TableHead>
             <TableHead>Current Bid</TableHead>
+            <TableHead>Time Remaining</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -91,6 +94,13 @@ export function DealerVehiclesTable({ vehicles }: DealerVehiclesTableProps) {
                 </TableCell>
                 <TableCell className="font-semibold text-slate-900">
                   {formatCurrency(vehicle.currentBid * 100)}
+                </TableCell>
+                <TableCell>
+                  {vehicle.endTime ? (
+                    <CountdownTimer endTime={vehicle.endTime} />
+                  ) : (
+                    <span className="text-sm text-slate-500">Ended</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge

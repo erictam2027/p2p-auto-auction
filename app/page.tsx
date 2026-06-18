@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { AuctionCard } from "@/components/auctions/auction-card";
+import { CountdownTimer } from "@/components/auctions/CountdownTimer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TrustBadgeGroup } from "@/components/trust/trust-badge";
 import { Button } from "@/components/ui/button";
 import type { TrendingAuction } from "@/lib/data/trending-auctions";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatMileage } from "@/lib/utils/format";
-import { ArrowRight, Clock, MapPin } from "lucide-react";
+import { ArrowRight, MapPin } from "lucide-react";
 
 type VehicleRow = Record<string, unknown>;
+
+const VEHICLE_AUCTION_SELECT =
+  "id, year, make, model, trim, mileage, location, city_state, current_bid, bid_count, end_time, image_url, nmvtis_verified, inspection_available";
 
 function readString(row: VehicleRow, keys: string[], fallback = "") {
   for (const key of keys) {
@@ -46,17 +50,20 @@ function readBoolean(row: VehicleRow, keys: string[], fallback = false) {
   return fallback;
 }
 
-function isActiveVehicle(row: VehicleRow) {
-  const status = readString(row, ["status", "auction_status", "listing_status"]).toLowerCase();
-  if (status.length > 0) {
-    return ["active", "live", "listed"].includes(status);
+function readEndTime(row: VehicleRow): string {
+  const value = row.end_time;
+
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "";
   }
 
-  if ("active" in row || "is_active" in row) {
-    return readBoolean(row, ["active", "is_active"], false);
+  const parsed = Date.parse(value);
+
+  if (!Number.isFinite(parsed)) {
+    return "";
   }
 
-  return true;
+  return new Date(parsed).toISOString();
 }
 
 function vehicleToAuction(vehicle: VehicleRow): TrendingAuction {
@@ -69,6 +76,7 @@ function vehicleToAuction(vehicle: VehicleRow): TrendingAuction {
   const currentBidCents = Number.isFinite(storedCurrentBidCents)
     ? storedCurrentBidCents
     : readNumber(vehicle, ["current_bid"], 0) * 100;
+  const endTime = readEndTime(vehicle);
 
   return {
     id,
@@ -80,7 +88,8 @@ function vehicleToAuction(vehicle: VehicleRow): TrendingAuction {
     location: readString(vehicle, ["location", "city_state", "city"], "Location pending"),
     currentBidCents,
     bidCount: readNumber(vehicle, ["bid_count", "bidCount"], 0),
-    endsIn: readString(vehicle, ["ends_in", "endsIn", "time_left"], "Coming soon"),
+    endsIn: endTime ? "" : "Ended",
+    endTime,
     imageUrl: readString(vehicle, ["image_url", "imageUrl"], ""),
     nmvtisVerified: readBoolean(vehicle, ["nmvtis_verified", "nmvtisVerified"], true),
     inspectionAvailable: readBoolean(
@@ -91,23 +100,47 @@ function vehicleToAuction(vehicle: VehicleRow): TrendingAuction {
   };
 }
 
-async function getActiveVehicles() {
+async function getFeaturedAuction() {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("vehicles").select("*");
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select(VEHICLE_AUCTION_SELECT)
+    .eq("status", "live")
+    .order("current_bid", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  const auction = vehicleToAuction(data);
+
+  return auction.id.length > 0 ? auction : null;
+}
+
+async function getClosingSoonAuctions(excludeId?: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select(VEHICLE_AUCTION_SELECT)
+    .eq("status", "live")
+    .order("end_time", { ascending: true, nullsFirst: false })
+    .limit(7);
 
   if (error) {
     return [];
   }
 
   return (data ?? [])
-    .filter(isActiveVehicle)
     .map(vehicleToAuction)
-    .filter((auction) => auction.id.length > 0);
+    .filter((auction) => auction.id.length > 0 && auction.id !== excludeId)
+    .slice(0, 6);
 }
 
 export default async function Home() {
-  const activeVehicles = await getActiveVehicles();
-  const featuredVehicle = activeVehicles[0];
+  const featuredVehicle = await getFeaturedAuction();
+  const closingSoonVehicles = await getClosingSoonAuctions(featuredVehicle?.id);
   const featuredTitle = featuredVehicle
     ? `${featuredVehicle.year} ${featuredVehicle.make} ${featuredVehicle.model}`
     : "";
@@ -127,14 +160,14 @@ export default async function Home() {
               <div className="mt-6 grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
                 <Link
                   href={`/auctions/${featuredVehicle.id}`}
-                  className="block overflow-hidden rounded-md border border-slate-200 bg-slate-100"
+                  className="group block overflow-hidden rounded-md border border-slate-200 bg-slate-100"
                 >
-                  <div className="aspect-[4/3]">
+                  <div className="aspect-[4/3] overflow-hidden">
                     {featuredVehicle.imageUrl ? (
                       <div
                         aria-label={featuredTitle}
                         role="img"
-                        className="h-full w-full bg-cover bg-center"
+                        className="h-full w-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
                         style={{ backgroundImage: `url(${featuredVehicle.imageUrl})` }}
                       />
                     ) : (
@@ -187,10 +220,22 @@ export default async function Home() {
                       </dd>
                     </div>
                     <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
-                      <dt className="text-xs text-slate-600">Ends in</dt>
-                      <dd className="mt-1 flex items-center gap-1.5 text-lg font-semibold text-slate-900">
-                        <Clock className="size-4 shrink-0 text-slate-500" />
-                        {featuredVehicle.endsIn}
+                      <dt className="text-xs text-slate-600">Time remaining</dt>
+                      <dd className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-900">
+                        {featuredVehicle.endTime ? (
+                          <>
+                            <span
+                              className="size-2 animate-pulse rounded-full bg-red-500"
+                              aria-hidden
+                            />
+                            <CountdownTimer
+                              endTime={featuredVehicle.endTime}
+                              className="text-lg font-semibold"
+                            />
+                          </>
+                        ) : (
+                          "Ended"
+                        )}
                       </dd>
                     </div>
                   </dl>
@@ -230,32 +275,27 @@ export default async function Home() {
           </section>
         ) : null}
 
-        {/* Trust strip */}
         <section className="border-b border-slate-200 bg-white">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-6 px-4 py-4 sm:px-6 lg:px-8">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
               Verified marketplace
             </p>
-            <TrustBadgeGroup
-              nmvtisVerified
-              inspectionAvailable
-            />
+            <TrustBadgeGroup nmvtisVerified inspectionAvailable />
           </div>
         </section>
 
-        {/* Featured Auctions */}
         <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
           <div className="flex flex-col gap-3 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">
-                Featured Auctions
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                Closing Soon
               </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Live listings with verified titles and escrow-protected transactions.
+              <p className="mt-2 text-sm text-slate-600">
+                Live auctions ending soonest — bid before the hammer drops.
               </p>
             </div>
             <Link
-              href="/auctions"
+              href="/browse"
               className="inline-flex items-center gap-1 text-sm font-medium text-slate-900 underline-offset-4 hover:underline"
             >
               View all auctions
@@ -263,14 +303,14 @@ export default async function Home() {
             </Link>
           </div>
 
-          {activeVehicles.length > 0 ? (
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-              {activeVehicles.map((auction) => (
+          {closingSoonVehicles.length > 0 ? (
+            <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {closingSoonVehicles.map((auction) => (
                 <AuctionCard key={auction.id} auction={auction} />
               ))}
             </div>
           ) : (
-            <div className="mt-6 rounded-md border border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-sm">
+            <div className="mt-8 rounded-md border border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-sm">
               <p className="text-sm font-medium text-slate-900">
                 New inventory arriving soon.
               </p>

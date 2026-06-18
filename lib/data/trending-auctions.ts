@@ -9,6 +9,7 @@ export type TrendingAuction = {
   currentBidCents: number;
   bidCount: number;
   endsIn: string;
+  endTime: string;
   imageUrl?: string;
   nmvtisVerified: boolean;
   inspectionAvailable: boolean;
@@ -25,6 +26,7 @@ export const featuredAuction: TrendingAuction = {
   currentBidCents: 14250000,
   bidCount: 47,
   endsIn: "2h 14m",
+  endTime: new Date(Date.now() + 2 * 60 * 60 * 1000 + 14 * 60 * 1000).toISOString(),
   nmvtisVerified: true,
   inspectionAvailable: true,
 };
@@ -41,6 +43,7 @@ export const trendingAuctions: TrendingAuction[] = [
     currentBidCents: 6850000,
     bidCount: 31,
     endsIn: "4h 12m",
+    endTime: new Date(Date.now() + (4 * 60 + 12) * 60 * 1000).toISOString(),
     nmvtisVerified: true,
     inspectionAvailable: true,
   },
@@ -55,6 +58,7 @@ export const trendingAuctions: TrendingAuction[] = [
     currentBidCents: 11890000,
     bidCount: 52,
     endsIn: "1h 38m",
+    endTime: new Date(Date.now() + (1 * 60 + 38) * 60 * 1000).toISOString(),
     nmvtisVerified: true,
     inspectionAvailable: false,
   },
@@ -69,6 +73,7 @@ export const trendingAuctions: TrendingAuction[] = [
     currentBidCents: 7240000,
     bidCount: 19,
     endsIn: "6h 45m",
+    endTime: new Date(Date.now() + (6 * 60 + 45) * 60 * 1000).toISOString(),
     nmvtisVerified: true,
     inspectionAvailable: true,
   },
@@ -83,6 +88,7 @@ export const trendingAuctions: TrendingAuction[] = [
     currentBidCents: 5420000,
     bidCount: 24,
     endsIn: "3h 11m",
+    endTime: new Date(Date.now() + (3 * 60 + 11) * 60 * 1000).toISOString(),
     nmvtisVerified: true,
     inspectionAvailable: true,
   },
@@ -97,6 +103,7 @@ export const trendingAuctions: TrendingAuction[] = [
     currentBidCents: 9875000,
     bidCount: 38,
     endsIn: "5h 20m",
+    endTime: new Date(Date.now() + (5 * 60 + 20) * 60 * 1000).toISOString(),
     nmvtisVerified: true,
     inspectionAvailable: true,
   },
@@ -111,6 +118,7 @@ export const trendingAuctions: TrendingAuction[] = [
     currentBidCents: 8120000,
     bidCount: 16,
     endsIn: "8h 55m",
+    endTime: new Date(Date.now() + (8 * 60 + 55) * 60 * 1000).toISOString(),
     nmvtisVerified: true,
     inspectionAvailable: false,
   },
