@@ -23,7 +23,7 @@ export default async function AdminLayout({
     .maybeSingle();
 
   if (!isAdmin(profile)) {
-    redirect("/profile");
+    redirect("/");
   }
 
   return (
