@@ -1,146 +1,30 @@
 import Link from "next/link";
-import { AuctionCard } from "@/components/auctions/auction-card";
+import { Suspense } from "react";
 import { CountdownTimer } from "@/components/auctions/CountdownTimer";
+import { HomeAuctionGrid } from "@/components/auctions/home-auction-grid";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TrustBadgeGroup } from "@/components/trust/trust-badge";
 import { Button } from "@/components/ui/button";
-import type { TrendingAuction } from "@/lib/data/trending-auctions";
-import { createClient } from "@/lib/supabase/server";
+import {
+  fetchHomeAuctions,
+  getFeaturedAuction,
+} from "@/lib/data/home-auctions";
+import { parseHomeAuctionFiltersFromSearchParams } from "@/lib/data/home-auction-filters";
 import { formatCurrency, formatMileage } from "@/lib/utils/format";
 import { ArrowRight, MapPin } from "lucide-react";
 
-type VehicleRow = Record<string, unknown>;
+type HomePageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-const VEHICLE_AUCTION_SELECT =
-  "id, year, make, model, trim, mileage, location, city_state, current_bid, bid_count, end_time, image_url, nmvtis_verified, inspection_available";
-
-function readString(row: VehicleRow, keys: string[], fallback = "") {
-  for (const key of keys) {
-    const value = row[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value;
-    }
-  }
-  return fallback;
-}
-
-function readNumber(row: VehicleRow, keys: string[], fallback = 0) {
-  for (const key of keys) {
-    const value = row[key];
-    if (typeof value === "number" && Number.isFinite(value)) {
-      return value;
-    }
-    if (typeof value === "string") {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) {
-        return parsed;
-      }
-    }
-  }
-  return fallback;
-}
-
-function readBoolean(row: VehicleRow, keys: string[], fallback = false) {
-  for (const key of keys) {
-    const value = row[key];
-    if (typeof value === "boolean") {
-      return value;
-    }
-  }
-  return fallback;
-}
-
-function readEndTime(row: VehicleRow): string {
-  const value = row.end_time;
-
-  if (typeof value !== "string" || value.trim().length === 0) {
-    return "";
-  }
-
-  const parsed = Date.parse(value);
-
-  if (!Number.isFinite(parsed)) {
-    return "";
-  }
-
-  return new Date(parsed).toISOString();
-}
-
-function vehicleToAuction(vehicle: VehicleRow): TrendingAuction {
-  const id = readString(vehicle, ["id", "slug"]);
-  const storedCurrentBidCents = readNumber(
-    vehicle,
-    ["current_bid_cents", "currentBidCents", "starting_bid_cents", "price_cents"],
-    Number.NaN,
-  );
-  const currentBidCents = Number.isFinite(storedCurrentBidCents)
-    ? storedCurrentBidCents
-    : readNumber(vehicle, ["current_bid"], 0) * 100;
-  const endTime = readEndTime(vehicle);
-
-  return {
-    id,
-    year: readNumber(vehicle, ["year"], new Date().getFullYear()),
-    make: readString(vehicle, ["make"], "Vehicle"),
-    model: readString(vehicle, ["model"], "Listing"),
-    trim: readString(vehicle, ["trim", "variant"], "Verified auction"),
-    mileage: readNumber(vehicle, ["mileage", "odometer"], 0),
-    location: readString(vehicle, ["location", "city_state", "city"], "Location pending"),
-    currentBidCents,
-    bidCount: readNumber(vehicle, ["bid_count", "bidCount"], 0),
-    endsIn: endTime ? "" : "Ended",
-    endTime,
-    imageUrl: readString(vehicle, ["image_url", "imageUrl"], ""),
-    nmvtisVerified: readBoolean(vehicle, ["nmvtis_verified", "nmvtisVerified"], true),
-    inspectionAvailable: readBoolean(
-      vehicle,
-      ["inspection_available", "inspectionAvailable"],
-      false,
-    ),
-  };
-}
-
-async function getFeaturedAuction() {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("vehicles")
-    .select(VEHICLE_AUCTION_SELECT)
-    .eq("status", "live")
-    .order("current_bid", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error || !data) {
-    return null;
-  }
-
-  const auction = vehicleToAuction(data);
-
-  return auction.id.length > 0 ? auction : null;
-}
-
-async function getClosingSoonAuctions(excludeId?: string) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("vehicles")
-    .select(VEHICLE_AUCTION_SELECT)
-    .eq("status", "live")
-    .order("end_time", { ascending: true, nullsFirst: false })
-    .limit(7);
-
-  if (error) {
-    return [];
-  }
-
-  return (data ?? [])
-    .map(vehicleToAuction)
-    .filter((auction) => auction.id.length > 0 && auction.id !== excludeId)
-    .slice(0, 6);
-}
-
-export default async function Home() {
+export default async function Home({ searchParams }: HomePageProps) {
+  const params = await searchParams;
+  const filters = parseHomeAuctionFiltersFromSearchParams(params);
   const featuredVehicle = await getFeaturedAuction();
-  const closingSoonVehicles = await getClosingSoonAuctions(featuredVehicle?.id);
+  const closingSoonVehicles = await fetchHomeAuctions(filters, {
+    excludeId: featuredVehicle?.id,
+    limit: 24,
+  });
   const featuredTitle = featuredVehicle
     ? `${featuredVehicle.year} ${featuredVehicle.make} ${featuredVehicle.model}`
     : "";
@@ -303,23 +187,21 @@ export default async function Home() {
             </Link>
           </div>
 
-          {closingSoonVehicles.length > 0 ? (
-            <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {closingSoonVehicles.map((auction) => (
-                <AuctionCard key={auction.id} auction={auction} />
-              ))}
-            </div>
-          ) : (
-            <div className="mt-8 rounded-md border border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-sm">
-              <p className="text-sm font-medium text-slate-900">
-                New inventory arriving soon.
-              </p>
-              <p className="mt-2 text-sm text-slate-600">
-                Verified listings will appear here once sellers complete title and
-                inspection checks.
-              </p>
-            </div>
-          )}
+          <div className="mt-8">
+            <Suspense
+              fallback={
+                <div className="rounded-md border border-slate-200 bg-white px-6 py-12 text-center text-sm text-slate-600 shadow-sm">
+                  Loading listings…
+                </div>
+              }
+            >
+              <HomeAuctionGrid
+                initialAuctions={closingSoonVehicles}
+                excludeId={featuredVehicle?.id}
+                initialFilters={filters}
+              />
+            </Suspense>
+          </div>
         </section>
       </main>
 

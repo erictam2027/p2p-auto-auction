@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -56,7 +57,12 @@ const vehicleUploadSchema = z.object({
       return Number.isFinite(parsed) && parsed >= 0;
     }, "Enter a valid mileage."),
   engine: z.string().trim().min(1, "Engine is required."),
-  transmission: z.string().trim().min(1, "Transmission is required."),
+  transmission: z
+    .string()
+    .trim()
+    .refine((value) => value === "Automatic" || value === "Manual", {
+      message: "Select Automatic or Manual.",
+    }),
   drivetrain: z.string().trim().min(1, "Drivetrain is required."),
   exteriorColor: z.string().trim().min(1, "Exterior color is required."),
   interiorColor: z.string().trim().min(1, "Interior color is required."),
@@ -65,7 +71,7 @@ const vehicleUploadSchema = z.object({
   knownFlaws: z.string().optional(),
 });
 
-type VehicleUploadValues = z.infer<typeof vehicleUploadSchema>;
+type VehicleUploadValues = z.input<typeof vehicleUploadSchema>;
 
 const inputClassName =
   "h-11 border-slate-300 bg-white text-slate-900 placeholder:text-slate-400";
@@ -243,7 +249,17 @@ export function VehicleUploadForm() {
                     <FormItem>
                       <FormLabel>Transmission</FormLabel>
                       <FormControl>
-                        <Input className={inputClassName} {...field} />
+                        <Select
+                          className={inputClassName}
+                          value={field.value}
+                          onChange={(event) => field.onChange(event.target.value)}
+                        >
+                          <option value="" disabled>
+                            Select transmission
+                          </option>
+                          <option value="Automatic">Automatic</option>
+                          <option value="Manual">Manual</option>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
