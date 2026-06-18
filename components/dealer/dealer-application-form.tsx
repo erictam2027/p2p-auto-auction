@@ -27,26 +27,30 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const dealerApplicationSchema = z.object({
+const formSchema = z.object({
   dealershipName: z
     .string()
     .trim()
-    .min(1, "Dealership name is required.")
+    .min(2, "Dealership name must be at least 2 characters.")
     .max(120, "Dealership name must be 120 characters or fewer."),
   dealerLicense: z
     .string()
     .trim()
-    .min(1, "Dealer license number is required.")
-    .max(64, "License number must be 64 characters or fewer."),
+    .min(5, "Must be at least 5 characters and contain only letters, numbers, or hyphens.")
+    .regex(
+      /^[a-zA-Z0-9-]+$/,
+      "Must be at least 5 characters and contain only letters, numbers, or hyphens.",
+    ),
   phone: z
     .string()
     .trim()
-    .min(10, "Enter a valid phone number.")
-    .max(20, "Phone number must be 20 characters or fewer.")
-    .regex(/^[\d\s()+.-]+$/, "Enter a valid phone number."),
+    .regex(
+      /^\D?(\d{3})\D?\D?(\d{3})\D?(\d{4})$/,
+      "Please enter a valid 10-digit phone number.",
+    ),
 });
 
-type DealerApplicationValues = z.infer<typeof dealerApplicationSchema>;
+type DealerApplicationValues = z.infer<typeof formSchema>;
 
 type DealerApplicationFormProps = {
   defaultValues?: {
@@ -63,7 +67,9 @@ export function DealerApplicationForm({ defaultValues }: DealerApplicationFormPr
   const router = useRouter();
 
   const form = useForm<DealerApplicationValues>({
-    resolver: zodResolver(dealerApplicationSchema),
+    resolver: zodResolver(formSchema),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
     defaultValues: {
       dealershipName: defaultValues?.dealershipName ?? "",
       dealerLicense: defaultValues?.dealerLicense ?? "",

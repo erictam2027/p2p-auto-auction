@@ -33,39 +33,25 @@ export async function submitDealerApplication(
     return { ok: false, message: "You must be signed in to submit an application." };
   }
 
-  const { data: updatedProfile, error } = await supabase
-    .from("profiles")
-    .update({
+  if (!user.email) {
+    return { ok: false, message: "Your account is missing an email address." };
+  }
+
+  const { error } = await supabase.from("profiles").upsert(
+    {
+      id: user.id,
+      email: user.email,
       dealership_name: dealershipName,
       dealer_license: dealerLicense,
       phone,
       role: "dealer",
       verification_status: "pending",
-    })
-    .eq("id", user.id)
-    .select("id")
-    .maybeSingle();
+    },
+    { onConflict: "id" },
+  );
 
   if (error) {
     return { ok: false, message: error.message };
-  }
-
-  if (!updatedProfile) {
-    const { error: insertError } = await supabase.from("profiles").upsert(
-      {
-        id: user.id,
-        dealership_name: dealershipName,
-        dealer_license: dealerLicense,
-        phone,
-        role: "dealer",
-        verification_status: "pending",
-      },
-      { onConflict: "id" },
-    );
-
-    if (insertError) {
-      return { ok: false, message: insertError.message };
-    }
   }
 
   revalidatePath("/dealer-application");
