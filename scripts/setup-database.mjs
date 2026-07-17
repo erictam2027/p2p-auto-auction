@@ -164,10 +164,17 @@ async function applyWithPg(databaseUrl) {
     try {
       await client.connect();
 
-      const migrationFile = join(rootDir, "supabase/APPLY_ALL_MIGRATIONS.sql");
-      const sql = readFileSync(migrationFile, "utf8");
-      console.log("Applying supabase/APPLY_ALL_MIGRATIONS.sql...");
-      await client.query(sql);
+      const migrationFiles = [
+        join(rootDir, "supabase/APPLY_ALL_MIGRATIONS.sql"),
+        join(rootDir, "supabase/migrations/20260716000000_production_completion.sql"),
+      ];
+
+      for (const migrationFile of migrationFiles) {
+        const sql = readFileSync(migrationFile, "utf8");
+        console.log(`Applying ${migrationFile.replace(`${rootDir}/`, "")}...`);
+        await client.query(sql);
+      }
+
       await client.query("NOTIFY pgrst, 'reload schema';");
       await client.end();
 

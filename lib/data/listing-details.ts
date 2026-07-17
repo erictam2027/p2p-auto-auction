@@ -37,6 +37,7 @@ export type ListingDetail = TrendingAuction & {
   winnerId: string;
   isLive: boolean;
   winnerLabel?: string;
+  reservePriceCents?: number | null;
 };
 
 const DEFAULT_HISTORY: VehicleHistoryEntry[] = [

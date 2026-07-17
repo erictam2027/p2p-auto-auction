@@ -3,6 +3,7 @@ import {
   ProfileBidsTable,
   ProfileWonAuctionsTable,
 } from "@/components/profile/profile-bids-table";
+import { IdentityVerificationCard } from "@/components/profile/identity-verification-card";
 import { ProfileSettingsForm } from "@/components/profile/profile-settings-form";
 import {
   fetchProfileActiveBids,
@@ -63,7 +64,7 @@ export default async function ProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("dealership_name, dealer_license")
+    .select("dealership_name, dealer_license, identity_status")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -144,7 +145,10 @@ export default async function ProfilePage() {
                 )}
               </TabsContent>
 
-              <TabsContent value="settings">
+              <TabsContent value="settings" className="space-y-6">
+                <IdentityVerificationCard
+                  identityStatus={profile?.identity_status ?? "unverified"}
+                />
                 <ProfileSettingsForm
                   email={user.email}
                   dealershipName={profile?.dealership_name ?? ""}

@@ -213,14 +213,14 @@ export default async function Home({ searchParams }: HomePageProps) {
             © {new Date().getFullYear()} ApexAuction. Escrow via KeySavvy. Titles verified via NMVTIS.
           </p>
           <div className="flex gap-6 text-sm text-slate-600">
-            <Link href="/browse" className="hover:text-slate-900">
-              Browse
+            <Link href="/privacy" className="hover:text-slate-900">
+              Privacy
             </Link>
-            <Link href="/dealer-application" className="hover:text-slate-900">
-              Sell
+            <Link href="/terms" className="hover:text-slate-900">
+              Terms
             </Link>
-            <Link href="/profile" className="hover:text-slate-900">
-              Account
+            <Link href="/trust-safety" className="hover:text-slate-900">
+              Trust & Safety
             </Link>
           </div>
         </div>

@@ -67,6 +67,8 @@ const vehicleUploadSchema = z.object({
   exteriorColor: z.string().trim().min(1, "Exterior color is required."),
   interiorColor: z.string().trim().min(1, "Interior color is required."),
   titleStatus: z.string().trim().min(1, "Title status is required."),
+  location: z.string().trim().optional(),
+  reservePrice: z.string().trim().optional(),
   highlights: z.string().trim().min(1, "Add at least one highlight."),
   knownFlaws: z.string().optional(),
 });
@@ -98,6 +100,8 @@ export function VehicleUploadForm() {
       exteriorColor: "",
       interiorColor: "",
       titleStatus: "Clean title",
+      location: "",
+      reservePrice: "",
       highlights: "",
       knownFlaws: "",
     },
@@ -122,6 +126,8 @@ export function VehicleUploadForm() {
     formData.append("exteriorColor", values.exteriorColor);
     formData.append("interiorColor", values.interiorColor);
     formData.append("titleStatus", values.titleStatus);
+    formData.append("location", values.location ?? "");
+    formData.append("reservePrice", values.reservePrice ?? "");
     formData.append("highlights", values.highlights);
     formData.append("knownFlaws", values.knownFlaws ?? "");
 
@@ -136,7 +142,7 @@ export function VehicleUploadForm() {
       return;
     }
 
-    toast.success("Vehicle uploaded successfully");
+    toast.success(result.message ?? "Vehicle uploaded successfully");
     router.push("/dashboard");
     router.refresh();
   }
@@ -286,6 +292,41 @@ export function VehicleUploadForm() {
                       <FormLabel>Title Status</FormLabel>
                       <FormControl>
                         <Input className={inputClassName} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="City, ST"
+                          className={inputClassName}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="reservePrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Reserve price (optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="0 = no reserve"
+                          className={inputClassName}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

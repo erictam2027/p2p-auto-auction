@@ -101,6 +101,7 @@ export function BiddingPanel({ listing, viewerUserId, escrow }: BiddingPanelProp
         initialBidsCount={listing.bidCount}
         location={listing.location}
         isLive={listing.isLive}
+        reservePriceCents={listing.reservePriceCents ?? null}
       />
 
       <div className="mt-5 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-center">

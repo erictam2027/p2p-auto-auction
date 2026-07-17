@@ -2,10 +2,11 @@
 
 import { canAccessDashboard } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
+import { verifyVinWithVinAudit } from "@/lib/trust/vinaudit";
 import { revalidatePath } from "next/cache";
 
 export type UploadVehicleResult =
-  | { ok: true }
+  | { ok: true; message?: string }
   | { ok: false; message: string };
 
 function splitLines(value: string) {
@@ -64,6 +65,8 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
   const titleStatus = readString(formData, "titleStatus");
   const highlights = readString(formData, "highlights");
   const knownFlaws = readString(formData, "knownFlaws");
+  const location = readString(formData, "location");
+  const reservePrice = readInteger(formData, "reservePrice");
   const carfax = formData.get("carfax");
 
   if (!year || !make || !model || !vin) {
@@ -72,6 +75,19 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
 
   if (mileage === null || mileage < 0) {
     return { ok: false, message: "Enter a valid mileage." };
+  }
+
+  const vinAudit = await verifyVinWithVinAudit(vin);
+
+  if (!vinAudit.ok) {
+    return { ok: false, message: vinAudit.message };
+  }
+
+  if (vinAudit.rejected) {
+    return {
+      ok: false,
+      message: vinAudit.message ?? "VIN rejected by NMVTIS verification.",
+    };
   }
 
   const extension = image.name.split(".").pop()?.toLowerCase() || "jpg";
@@ -138,8 +154,16 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
     carfax_url: carfaxUrl,
     seller_id: user.id,
     current_bid: 0,
+    bid_count: 0,
     end_time: endTime,
     status: "live",
+    location: location || null,
+    city_state: location || null,
+    reserve_price: reservePrice && reservePrice > 0 ? reservePrice : null,
+    nmvtis_verified: vinAudit.verified,
+    nmvtis_status: vinAudit.status,
+    nmvtis_report_url: vinAudit.reportUrl,
+    inspection_available: false,
   });
 
   if (insertError) {
@@ -147,5 +171,11 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
   }
 
   revalidatePath("/dashboard");
-  return { ok: true };
+  revalidatePath("/");
+  revalidatePath("/browse");
+
+  return {
+    ok: true,
+    message: vinAudit.verified ? undefined : vinAudit.message,
+  };
 }

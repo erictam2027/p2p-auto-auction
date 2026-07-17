@@ -19,9 +19,16 @@ export async function GET() {
     escrowTransactionsTable: false,
     vehiclesWinnerId: false,
     bidsUserId: false,
-    stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY?.trim()),
+    messagesTable: false,
+    watchlistTable: false,
+    stripeConfigured: Boolean(
+      process.env.STRIPE_SECRET_KEY?.trim() &&
+        !process.env.STRIPE_SECRET_KEY.includes("placeholder"),
+    ),
     cronConfigured: Boolean(process.env.CRON_SECRET?.trim()),
     keysavvyAffiliateConfigured: Boolean(process.env.KEYSAVVY_AFFILIATE_ID?.trim()),
+    personaConfigured: Boolean(process.env.PERSONA_API_KEY?.trim()),
+    vinauditConfigured: Boolean(process.env.VINAUDIT_API_KEY?.trim()),
   };
 
   const { error: rpcError } = await supabase.rpc("close_expired_auctions");
@@ -36,7 +43,14 @@ export async function GET() {
   const { error: bidsError } = await supabase.from("bids").select("user_id").limit(1);
   checks.bidsUserId = !bidsError;
 
-  const ok = checks.closeExpiredAuctionsRpc &&
+  const { error: messagesError } = await supabase.from("messages").select("id").limit(1);
+  checks.messagesTable = !messagesError;
+
+  const { error: watchlistError } = await supabase.from("watchlist").select("id").limit(1);
+  checks.watchlistTable = !watchlistError;
+
+  const ok =
+    checks.closeExpiredAuctionsRpc &&
     checks.escrowTransactionsTable &&
     checks.vehiclesWinnerId &&
     checks.bidsUserId;

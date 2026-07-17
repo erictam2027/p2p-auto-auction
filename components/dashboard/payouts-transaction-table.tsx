@@ -1,3 +1,4 @@
+import { EscrowOpsButtons } from "@/components/dashboard/escrow-ops-buttons";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -19,7 +20,7 @@ export function PayoutsTransactionTable({
 }: PayoutsTransactionTableProps) {
   return (
     <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
-      <Table className="min-w-[800px]">
+      <Table className="min-w-[900px]">
         <TableHeader>
           <TableRow className="border-slate-200 bg-slate-50 hover:bg-slate-50">
             <TableHead>Vehicle</TableHead>
@@ -28,6 +29,7 @@ export function PayoutsTransactionTable({
             <TableHead>Completed</TableHead>
             <TableHead>KeySavvy Transfer</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -47,8 +49,16 @@ export function PayoutsTransactionTable({
                   variant="outline"
                   className="border-slate-200 bg-slate-50 capitalize text-slate-700"
                 >
-                  {tx.status}
+                  {tx.escrowStatus ?? tx.status}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                {tx.vehicleId && tx.escrowStatus ? (
+                  <EscrowOpsButtons
+                    vehicleId={tx.vehicleId}
+                    status={tx.escrowStatus}
+                  />
+                ) : null}
               </TableCell>
             </TableRow>
           ))}

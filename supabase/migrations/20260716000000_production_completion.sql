@@ -79,10 +79,18 @@ ALTER TABLE watchlist ENABLE ROW LEVEL SECURITY;
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'watchlist' AND policyname = 'watchlist_own'
+    SELECT 1 FROM pg_policies WHERE tablename = 'watchlist' AND policyname = 'watchlist_select_own'
   ) THEN
     CREATE POLICY watchlist_select_own ON watchlist FOR SELECT USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'watchlist' AND policyname = 'watchlist_insert_own'
+  ) THEN
     CREATE POLICY watchlist_insert_own ON watchlist FOR INSERT WITH CHECK (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'watchlist' AND policyname = 'watchlist_delete_own'
+  ) THEN
     CREATE POLICY watchlist_delete_own ON watchlist FOR DELETE USING (auth.uid() = user_id);
   END IF;
 END $$;

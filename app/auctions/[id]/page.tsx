@@ -12,6 +12,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { isAuctionLive } from "@/lib/auctions/vehicle-status";
 import { fetchEscrowForVehicle } from "@/lib/data/escrow-transactions";
 import type { ListingDetail, VehicleHistoryEntry } from "@/lib/data/listing-details";
+import { isWatchingVehicle } from "@/app/auctions/[id]/watchlist-actions";
 import { createClient } from "@/lib/supabase/server";
 import { formatMileage } from "@/lib/utils/format";
 import { ChevronRight, MapPin } from "lucide-react";
@@ -106,6 +107,16 @@ function readEndTime(row: VehicleRow): string {
   return new Date(parsed).toISOString();
 }
 
+function readBoolean(row: VehicleRow, keys: string[], fallback = false) {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === "boolean") {
+      return value;
+    }
+  }
+  return fallback;
+}
+
 function vehicleToListing(
   vehicle: VehicleRow,
   highestBid: number,
@@ -160,13 +171,21 @@ function vehicleToListing(
     isLive: live,
     winnerLabel: "",
     imageUrl: readString(vehicle, ["image_url", "imageUrl"], ""),
-    nmvtisVerified: true,
-    inspectionAvailable: false,
+    nmvtisVerified: readBoolean(vehicle, ["nmvtis_verified", "nmvtisVerified"], false),
+    inspectionAvailable: readBoolean(
+      vehicle,
+      ["inspection_available", "inspectionAvailable"],
+      false,
+    ),
     vin: readString(vehicle, ["vin"], "Pending"),
     sellerId: readString(vehicle, ["seller_id", "owner_id", "dealer_id", "user_id"]),
     sellerName: readString(vehicle, ["dealership_name", "seller_name"], "Seller"),
     carfaxUrl: readString(vehicle, ["carfax_url", "carfaxUrl"]),
     imageCount: 1,
+    reservePriceCents: (() => {
+      const reserve = readNumber(vehicle, ["reserve_price", "reservePrice"], 0);
+      return reserve > 0 ? reserve * 100 : null;
+    })(),
     engine: readString(vehicle, ["engine"], "Pending verification"),
     transmission: readString(vehicle, ["transmission"], "Pending verification"),
     drivetrain: readString(vehicle, ["drivetrain", "drive_train"], "Pending verification"),
@@ -203,7 +222,7 @@ async function getAuctionListing(id: string) {
   const { data: vehicle, error: vehicleError } = await supabase
     .from("vehicles")
     .select(
-      "id, year, make, model, trim, mileage, location, city_state, vin, seller_id, winner_id, image_url, carfax_url, engine, transmission, drivetrain, exterior_color, interior_color, title_status, highlights, known_flaws, recent_service, modifications, equipment, dealer_notes, end_time, current_bid, status",
+      "id, year, make, model, trim, mileage, location, city_state, vin, seller_id, winner_id, image_url, carfax_url, engine, transmission, drivetrain, exterior_color, interior_color, title_status, highlights, known_flaws, recent_service, modifications, equipment, dealer_notes, end_time, current_bid, status, reserve_price, nmvtis_verified, inspection_available, bid_count",
     )
     .eq("id", id)
     .single();
@@ -271,6 +290,7 @@ export default async function AuctionDetailPage({ params }: AuctionDetailPagePro
   }
 
   const escrow = await fetchEscrowForVehicle(id);
+  const watching = user ? await isWatchingVehicle(id) : false;
   const title = `${listing.year} ${listing.make} ${listing.model}`;
 
   return (
@@ -320,6 +340,7 @@ export default async function AuctionDetailPage({ params }: AuctionDetailPagePro
               vehicleId={listing.id}
               sellerId={listing.sellerId}
               sellerName={listing.sellerName}
+              initiallyWatching={watching}
             />
           </aside>
         </div>

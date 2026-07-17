@@ -12,12 +12,14 @@ export type DealerLiveAuction = {
 
 export type DealerPayoutTransaction = {
   id: string;
+  vehicleId?: string;
   vehicle: string;
   vin: string;
   amountCents: number;
   completedAt: string;
   keysavvyTransferId: string;
   status: "completed" | "processing";
+  escrowStatus?: string;
 };
 
 export type DealerDashboardMetrics = {

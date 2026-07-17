@@ -91,6 +91,7 @@ export default async function PayoutsPage() {
 
     return {
       id: row.id,
+      vehicleId: row.vehicle_id,
       vehicle: vehicle
         ? `${vehicle.year ?? ""} ${vehicle.make ?? "Vehicle"} ${vehicle.model ?? "Listing"}`.trim()
         : "Vehicle listing",
@@ -99,6 +100,7 @@ export default async function PayoutsPage() {
       completedAt: formatCompletedDate(row.completed_at ?? row.updated_at),
       keysavvyTransferId: row.keysavvy_transaction_id ?? getEscrowStatusLabel(status),
       status: mapPayoutStatus(status),
+      escrowStatus: status,
     };
   });
 

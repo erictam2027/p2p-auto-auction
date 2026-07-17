@@ -8,7 +8,8 @@ async function getUnreadMessageCount(userId: string) {
   const { count, error } = await supabase
     .from("messages")
     .select("*", { count: "exact", head: true })
-    .eq("receiver_id", userId);
+    .eq("receiver_id", userId)
+    .is("read_at", null);
 
   if (error) {
     return 0;
