@@ -34,7 +34,9 @@ export default async function ActiveAuctionsPage() {
 
   const { data: vehicles } = await supabase
     .from("vehicles")
-    .select("id, vin, year, make, model, current_bid, end_time")
+    .select(
+      "id, vin, year, make, model, current_bid, end_time, location, city_state, inspection_available",
+    )
     .eq("seller_id", user.id)
     .eq("status", "live")
     .order("end_time", { ascending: true });
@@ -47,6 +49,8 @@ export default async function ActiveAuctionsPage() {
     model: vehicle.model ?? "Listing",
     currentBidCents: (vehicle.current_bid ?? 0) * 100,
     endTime: readEndTime(vehicle.end_time),
+    location: vehicle.location ?? vehicle.city_state ?? "",
+    inspectionAvailable: Boolean(vehicle.inspection_available),
   }));
 
   return (

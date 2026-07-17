@@ -1,5 +1,6 @@
 "use server";
 
+import { finalizeClosedAuctions } from "@/lib/auctions/finalize-closed-auctions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -85,6 +86,33 @@ export async function forceCloseAuction(vehicleId: string) {
   }
 
   if (topBid?.user_id) {
+    const { data: vehicle } = await client
+      .from("vehicles")
+      .select("seller_id, current_bid")
+      .eq("id", vehicleId)
+      .maybeSingle();
+
+    if (vehicle?.seller_id && topBid.amount) {
+      const { data: existingEscrow } = await client
+        .from("escrow_transactions")
+        .select("id")
+        .eq("vehicle_id", vehicleId)
+        .maybeSingle();
+
+      if (!existingEscrow) {
+        await client.from("escrow_transactions").insert({
+          vehicle_id: vehicleId,
+          buyer_id: topBid.user_id,
+          seller_id: vehicle.seller_id,
+          sale_price: topBid.amount,
+          status: "pending",
+          platform_fee_status: "pending",
+          platform_fee_cents: Math.round(topBid.amount * 100 * 0.05),
+          updated_at: new Date().toISOString(),
+        });
+      }
+    }
+
     await client.from("notifications").insert({
       user_id: topBid.user_id,
       type: "auction_won",
@@ -95,7 +123,10 @@ export async function forceCloseAuction(vehicleId: string) {
     });
   }
 
+  await finalizeClosedAuctions(client);
+
   revalidatePath("/admin");
   revalidatePath(`/auctions/${vehicleId}`);
+  revalidatePath("/notifications");
   revalidatePath("/");
 }

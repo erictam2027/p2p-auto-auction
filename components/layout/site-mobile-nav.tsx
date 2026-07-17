@@ -54,13 +54,22 @@ export function SiteMobileNav({
             Browse Auctions
           </Link>
           {isSignedIn ? (
-            <Link
-              href="/profile"
-              onClick={() => setOpen(false)}
-              className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Profile
-            </Link>
+            <>
+              <Link
+                href="/profile"
+                onClick={() => setOpen(false)}
+                className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Profile
+              </Link>
+              <Link
+                href="/notifications"
+                onClick={() => setOpen(false)}
+                className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Notifications
+              </Link>
+            </>
           ) : (
             <Link
               href="/login"

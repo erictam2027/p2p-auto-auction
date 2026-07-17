@@ -143,9 +143,23 @@ function vehicleToListing(
     "Clean title verification pending",
   );
 
+  const nmvtisStatus = readString(vehicle, ["nmvtis_status", "nmvtisStatus"]);
+  const nmvtisVerified = readBoolean(vehicle, ["nmvtis_verified", "nmvtisVerified"], false);
+  const nmvtisReportUrl = readString(vehicle, ["nmvtis_report_url", "nmvtisReportUrl"]);
+
   const vehicleHistory: VehicleHistoryEntry[] = [
     { label: "Title Status", value: titleStatus },
-    { label: "NMVTIS Report", value: "Marketplace verification in progress" },
+    {
+      label: "NMVTIS Report",
+      value: nmvtisVerified
+        ? "Verified clean"
+        : nmvtisStatus
+          ? nmvtisStatus.replaceAll("_", " ")
+          : "Marketplace verification in progress",
+    },
+    ...(nmvtisReportUrl
+      ? [{ label: "NMVTIS Link", value: nmvtisReportUrl }]
+      : []),
     { label: "Listing", value: title },
     { label: "Location", value: location },
     {
@@ -171,7 +185,7 @@ function vehicleToListing(
     isLive: live,
     winnerLabel: "",
     imageUrl: readString(vehicle, ["image_url", "imageUrl"], ""),
-    nmvtisVerified: readBoolean(vehicle, ["nmvtis_verified", "nmvtisVerified"], false),
+    nmvtisVerified,
     inspectionAvailable: readBoolean(
       vehicle,
       ["inspection_available", "inspectionAvailable"],
@@ -222,7 +236,7 @@ async function getAuctionListing(id: string) {
   const { data: vehicle, error: vehicleError } = await supabase
     .from("vehicles")
     .select(
-      "id, year, make, model, trim, mileage, location, city_state, vin, seller_id, winner_id, image_url, carfax_url, engine, transmission, drivetrain, exterior_color, interior_color, title_status, highlights, known_flaws, recent_service, modifications, equipment, dealer_notes, end_time, current_bid, status, reserve_price, nmvtis_verified, inspection_available, bid_count",
+      "id, year, make, model, trim, mileage, location, city_state, vin, seller_id, winner_id, image_url, carfax_url, engine, transmission, drivetrain, exterior_color, interior_color, title_status, highlights, known_flaws, recent_service, modifications, equipment, dealer_notes, end_time, current_bid, status, reserve_price, nmvtis_verified, nmvtis_status, nmvtis_report_url, inspection_available, bid_count",
     )
     .eq("id", id)
     .single();

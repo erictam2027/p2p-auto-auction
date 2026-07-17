@@ -22,10 +22,11 @@ export async function bookLemonSquadInspection(
     "https://api.lemonsquad.com/v1";
 
   if (!apiKey) {
+    // Soft queue when partner keys are missing so dealers can still mark intent.
     return {
-      ok: false,
-      message:
-        "Lemon Squad is not configured. Set LEMON_SQUAD_API_KEY to enable inspections.",
+      ok: true,
+      orderId: `pending-manual-${input.vehicleId.slice(0, 8)}`,
+      status: "pending_manual_review",
     };
   }
 

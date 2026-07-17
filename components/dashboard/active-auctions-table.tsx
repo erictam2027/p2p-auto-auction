@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CountdownTimer } from "@/components/auctions/CountdownTimer";
+import { ScheduleInspectionButton } from "@/components/dashboard/schedule-inspection-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -19,6 +20,8 @@ export type DealerLiveAuctionRow = {
   model: string;
   currentBidCents: number;
   endTime: string;
+  location?: string;
+  inspectionAvailable?: boolean;
 };
 
 type ActiveAuctionsTableProps = {
@@ -28,7 +31,7 @@ type ActiveAuctionsTableProps = {
 export function ActiveAuctionsTable({ auctions }: ActiveAuctionsTableProps) {
   return (
     <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
-      <Table className="min-w-[860px]">
+      <Table className="min-w-[960px]">
         <TableHeader>
           <TableRow className="border-slate-200 bg-slate-50 hover:bg-slate-50">
             <TableHead>Vehicle</TableHead>
@@ -36,6 +39,7 @@ export function ActiveAuctionsTable({ auctions }: ActiveAuctionsTableProps) {
             <TableHead>Current Bid</TableHead>
             <TableHead>Time Left</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Inspection</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -72,6 +76,21 @@ export function ActiveAuctionsTable({ auctions }: ActiveAuctionsTableProps) {
                   >
                     Live
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {auction.inspectionAvailable ? (
+                    <Badge
+                      variant="outline"
+                      className="border-slate-200 bg-slate-50 text-slate-700"
+                    >
+                      Available
+                    </Badge>
+                  ) : (
+                    <ScheduleInspectionButton
+                      vehicleId={auction.id}
+                      locationHint={auction.location}
+                    />
+                  )}
                 </TableCell>
               </TableRow>
             );

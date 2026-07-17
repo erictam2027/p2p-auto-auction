@@ -9,6 +9,8 @@ import {
   fetchProfileActiveBids,
   fetchProfileWonAuctions,
 } from "@/lib/data/profile-bids";
+import { fetchWatchlistItems } from "@/lib/data/watchlist";
+import { ProfileWatchlist } from "@/components/profile/profile-watchlist";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Card,
@@ -52,7 +54,11 @@ function EmptyState({
   );
 }
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -62,6 +68,14 @@ export default async function ProfilePage() {
     redirect("/login?next=/profile");
   }
 
+  const params = await searchParams;
+  const defaultTab =
+    params.tab === "watchlist" ||
+    params.tab === "won-auctions" ||
+    params.tab === "settings"
+      ? params.tab
+      : "active-bids";
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("dealership_name, dealer_license, identity_status")
@@ -69,9 +83,10 @@ export default async function ProfilePage() {
     .maybeSingle();
 
   const initials = getInitials(user.email);
-  const [activeBids, wonAuctions] = await Promise.all([
+  const [activeBids, wonAuctions, watchlist] = await Promise.all([
     fetchProfileActiveBids(user.id),
     fetchProfileWonAuctions(user.id),
+    fetchWatchlistItems(supabase, user.id),
   ]);
 
   return (
@@ -98,7 +113,7 @@ export default async function ProfilePage() {
           </CardHeader>
 
           <CardContent className="pt-6">
-            <Tabs defaultValue="active-bids" className="gap-6">
+            <Tabs defaultValue={defaultTab} className="gap-6">
               <TabsList
                 variant="line"
                 className="h-auto w-full justify-start gap-0 rounded-none border-b border-slate-200 bg-transparent p-0"
@@ -114,6 +129,12 @@ export default async function ProfilePage() {
                   className="rounded-none px-4 py-3 text-slate-600 data-active:text-slate-900"
                 >
                   Won Auctions
+                </TabsTrigger>
+                <TabsTrigger
+                  value="watchlist"
+                  className="rounded-none px-4 py-3 text-slate-600 data-active:text-slate-900"
+                >
+                  Watchlist
                 </TabsTrigger>
                 <TabsTrigger
                   value="settings"
@@ -141,6 +162,17 @@ export default async function ProfilePage() {
                   <EmptyState
                     title="No won auctions yet"
                     description="Completed purchases will be tracked here with escrow, title, and delivery milestones."
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="watchlist">
+                {watchlist.length > 0 ? (
+                  <ProfileWatchlist items={watchlist} />
+                ) : (
+                  <EmptyState
+                    title="No watched auctions"
+                    description="Tap Watch on a listing to save it here for quick return."
                   />
                 )}
               </TabsContent>

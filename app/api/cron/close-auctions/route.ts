@@ -1,3 +1,4 @@
+import { finalizeClosedAuctions } from "@/lib/auctions/finalize-closed-auctions";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
@@ -62,11 +63,14 @@ export async function GET(request: Request) {
   }
 
   const processed = readProcessedCount(data);
+  const finalized = await finalizeClosedAuctions(supabase);
 
   return NextResponse.json({
     ok: true,
     processed,
     finalized: processed,
+    escrowCreated: finalized.escrowCreated,
+    notificationsCreated: finalized.notificationsCreated,
     message: `${processed} auction${processed === 1 ? "" : "s"} successfully processed and finalized.`,
   });
 }

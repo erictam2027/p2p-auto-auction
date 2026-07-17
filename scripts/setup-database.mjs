@@ -167,6 +167,8 @@ async function applyWithPg(databaseUrl) {
       const migrationFiles = [
         join(rootDir, "supabase/APPLY_ALL_MIGRATIONS.sql"),
         join(rootDir, "supabase/migrations/20260716000000_production_completion.sql"),
+        join(rootDir, "supabase/migrations/20260716120000_finalize_auction_close.sql"),
+        join(rootDir, "supabase/migrations/20260716130000_vehicles_seller_and_core_columns.sql"),
       ];
 
       for (const migrationFile of migrationFiles) {

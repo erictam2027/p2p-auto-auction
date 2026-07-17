@@ -2,7 +2,7 @@
 
 import { signOut } from "@/app/auth/actions";
 import type { User } from "@supabase/supabase-js";
-import { ChevronDown, LogOut, UserCircle } from "lucide-react";
+import { Bell, ChevronDown, Heart, LogOut, UserCircle } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 
@@ -54,6 +54,24 @@ export function UserMenu({ user }: UserMenuProps) {
           >
             <UserCircle className="size-4 text-slate-500" />
             Profile
+          </Link>
+
+          <Link
+            href="/notifications"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            <Bell className="size-4 text-slate-500" />
+            Notifications
+          </Link>
+
+          <Link
+            href="/profile?tab=watchlist"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            <Heart className="size-4 text-slate-500" />
+            Watchlist
           </Link>
 
           <form action={signOut}>

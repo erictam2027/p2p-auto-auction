@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/auth/user-menu";
 import { SiteHeaderSearch } from "@/components/layout/site-header-search";
 import { SiteMobileNav } from "@/components/layout/site-mobile-nav";
-import { Gavel } from "lucide-react";
+import { Gavel, Bell } from "lucide-react";
 
 export async function SiteHeader() {
   const supabase = await createClient();
@@ -61,6 +61,13 @@ export async function SiteHeader() {
           <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
             {user ? (
               <>
+                <Link
+                  href="/notifications"
+                  className="hidden rounded-md p-2 text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 sm:inline-flex"
+                  aria-label="Notifications"
+                >
+                  <Bell className="size-4" />
+                </Link>
                 <UserMenu user={user} />
                 <Button
                   variant="outline"
