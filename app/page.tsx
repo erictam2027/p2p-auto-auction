@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { CountdownTimer } from "@/components/auctions/CountdownTimer";
 import { HomeAuctionGrid } from "@/components/auctions/home-auction-grid";
+import { SeedTestVehicleButton } from "@/components/dev/seed-test-vehicle-button";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TrustBadgeGroup } from "@/components/trust/trust-badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ export default async function Home({ searchParams }: HomePageProps) {
   return (
     <div className="flex min-h-full flex-1 flex-col bg-slate-50 text-slate-900">
       <SiteHeader />
+      {process.env.NODE_ENV === "development" ? <SeedTestVehicleButton /> : null}
 
       <main className="flex-1">
         {featuredVehicle ? (

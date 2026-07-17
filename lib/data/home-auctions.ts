@@ -98,10 +98,59 @@ export function vehicleToAuction(vehicle: VehicleRow): TrendingAuction {
   };
 }
 
+function logSupabaseEnvWarnings(context: string) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    console.warn(
+      `[${context}] NEXT_PUBLIC_SUPABASE_URL is undefined — Supabase requests will fail.`,
+    );
+  }
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.warn(
+      `[${context}] NEXT_PUBLIC_SUPABASE_ANON_KEY is undefined — Supabase requests will fail.`,
+    );
+  }
+}
+
+function logSupabaseError(context: string, error: unknown) {
+  logSupabaseEnvWarnings(context);
+
+  if (error && typeof error === "object") {
+    const err = error as {
+      message?: string;
+      details?: string;
+      hint?: string;
+      code?: string;
+    };
+
+    console.error(`[${context}]`, {
+      message: err.message ?? "(no message)",
+      details: err.details ?? "(no details)",
+      hint: err.hint ?? "(no hint)",
+      code: err.code ?? "(no code)",
+      supabaseUrlConfigured: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      supabaseUrlHost: process.env.NEXT_PUBLIC_SUPABASE_URL
+        ? (() => {
+            try {
+              return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host;
+            } catch {
+              return "(invalid URL)";
+            }
+          })()
+        : "(undefined)",
+    });
+    return;
+  }
+
+  console.error(`[${context}]`, String(error));
+}
+
 export async function fetchHomeAuctions(
   filters: HomeAuctionFilters = DEFAULT_HOME_AUCTION_FILTERS,
   options?: { excludeId?: string; limit?: number },
 ): Promise<TrendingAuction[]> {
+  logSupabaseEnvWarnings("fetchHomeAuctions");
+
   const supabase = await createClient();
   let query = supabase
     .from("vehicles")
@@ -131,7 +180,7 @@ export async function fetchHomeAuctions(
   const { data, error } = await query.limit(options?.limit ?? 24);
 
   if (error) {
-    console.error("Home auction fetch error:", error);
+    logSupabaseError("Home auction fetch error", error);
     return [];
   }
 
@@ -142,6 +191,8 @@ export async function fetchHomeAuctions(
 }
 
 export async function getFeaturedAuction() {
+  logSupabaseEnvWarnings("getFeaturedAuction");
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("vehicles")
@@ -151,7 +202,12 @@ export async function getFeaturedAuction() {
     .limit(1)
     .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
+    logSupabaseError("Featured auction fetch error", error);
+    return null;
+  }
+
+  if (!data) {
     return null;
   }
 
