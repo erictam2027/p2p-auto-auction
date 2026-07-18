@@ -10,6 +10,7 @@ export type UploadVehicleResult =
   | { ok: false; message: string };
 
 const MAX_VEHICLE_IMAGES = 12;
+const AUCTION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 function splitLines(value: string) {
   return value
@@ -116,6 +117,7 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
   const knownFlaws = readString(formData, "knownFlaws");
   const location = readString(formData, "location");
   const reservePrice = readInteger(formData, "reservePrice");
+  const shouldPublish = readString(formData, "listingIntent") === "publish";
 
   if (!year || !make || !model || !vin) {
     return { ok: false, message: "Year, make, model, and VIN are required." };
@@ -159,7 +161,9 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
       .data.publicUrl;
   }
 
-  const endTime = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const endTime = shouldPublish
+    ? new Date(Date.now() + AUCTION_DURATION_MS).toISOString()
+    : null;
 
   const { error: insertError } = await supabase.from("vehicles").insert({
     year,
@@ -182,7 +186,7 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
     current_bid: 0,
     bid_count: 0,
     end_time: endTime,
-    status: "live",
+    status: shouldPublish ? "live" : "draft",
     location: location || null,
     city_state: location || null,
     reserve_price: reservePrice && reservePrice > 0 ? reservePrice : null,
@@ -197,11 +201,17 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
   }
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/auctions");
   revalidatePath("/");
   revalidatePath("/browse");
 
   return {
     ok: true,
-    message: vinAudit.verified ? undefined : vinAudit.message,
+    message:
+      vinAudit.verified
+        ? shouldPublish
+          ? "Vehicle published for a seven-day auction."
+          : "Vehicle saved as a draft. Publish it from the dealer dashboard when ready."
+        : vinAudit.message,
   };
 }

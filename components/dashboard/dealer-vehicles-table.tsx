@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CountdownTimer } from "@/components/auctions/CountdownTimer";
+import { PublishListingButton } from "@/components/dashboard/publish-listing-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -22,7 +23,7 @@ export type DealerVehicleRow = {
   currentBid: number;
   imageUrl: string;
   endTime: string;
-  status: "Live" | "Ended";
+  status: "Draft" | "Live" | "Ended";
 };
 
 type DealerVehiclesTableProps = {
@@ -53,12 +54,14 @@ export function DealerVehiclesTable({ vehicles }: DealerVehiclesTableProps) {
             <TableHead>Current Bid</TableHead>
             <TableHead>Time Remaining</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {vehicles.map((vehicle) => {
             const title = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
             const isLive = vehicle.status === "Live";
+            const isDraft = vehicle.status === "Draft";
 
             return (
               <TableRow key={vehicle.id} className="border-slate-200">
@@ -98,6 +101,8 @@ export function DealerVehiclesTable({ vehicles }: DealerVehiclesTableProps) {
                 <TableCell>
                   {vehicle.endTime ? (
                     <CountdownTimer endTime={vehicle.endTime} />
+                  ) : isDraft ? (
+                    <span className="text-sm text-slate-500">Not scheduled</span>
                   ) : (
                     <span className="text-sm text-slate-500">Ended</span>
                   )}
@@ -108,11 +113,25 @@ export function DealerVehiclesTable({ vehicles }: DealerVehiclesTableProps) {
                     className={
                       isLive
                         ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-slate-200 bg-slate-50 text-slate-600"
+                        : isDraft
+                          ? "border-amber-200 bg-amber-50 text-amber-700"
+                          : "border-slate-200 bg-slate-50 text-slate-600"
                     }
                   >
                     {vehicle.status}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  {isDraft ? (
+                    <PublishListingButton vehicleId={vehicle.id} />
+                  ) : (
+                    <Link
+                      href={`/auctions/${vehicle.id}`}
+                      className="text-sm font-medium text-slate-700 hover:text-slate-950 hover:underline"
+                    >
+                      View
+                    </Link>
+                  )}
                 </TableCell>
               </TableRow>
             );

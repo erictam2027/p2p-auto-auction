@@ -56,6 +56,10 @@ function readEndTime(endTime: string | null): string {
 function getVehicleStatus(vehicle: VehicleRow) {
   const status = vehicle.status?.toLowerCase();
 
+  if (status === "draft") {
+    return "Draft" as const;
+  }
+
   if (status === "ended" || status === "closed") {
     return "Ended" as const;
   }
@@ -168,6 +172,7 @@ export default async function DashboardPage() {
   }));
 
   const dealershipName = profile?.dealership_name ?? "Dealer Portal";
+  const draftRows = rows.filter((vehicle) => vehicle.status === "Draft");
   const liveRows = rows.filter((vehicle) => vehicle.status === "Live");
   const endedRows = rows.filter((vehicle) => vehicle.status === "Ended");
   const endingSoonRows = liveRows.filter((vehicle) => isEndingWithinDay(vehicle.endTime));
@@ -204,13 +209,21 @@ export default async function DashboardPage() {
           label: "Upload Inventory",
         }
       : liveRows.length === 0
-        ? {
-            title: "Refresh your auction lane",
-            description:
-              "Your catalog is quiet right now. Add or relaunch inventory to get back in front of buyers.",
-            href: "/dashboard/upload",
-            label: "Add Inventory",
-          }
+        ? draftRows.length > 0
+          ? {
+              title: "Publish a prepared listing",
+              description:
+                "Your inventory is saved privately. Review a draft and publish it when the auction is ready.",
+              href: "/dashboard",
+              label: "Review Drafts",
+            }
+          : {
+              title: "Refresh your auction lane",
+              description:
+                "Your catalog is quiet right now. Add or relaunch inventory to get back in front of buyers.",
+              href: "/dashboard/upload",
+              label: "Add Inventory",
+            }
         : endingSoonRows.length > 0
           ? {
               title: "Watch auctions closing soon",
@@ -248,7 +261,7 @@ export default async function DashboardPage() {
     {
       id: "first-listing",
       title: "First vehicle uploaded",
-      description: "Inventory appears in the marketplace catalog once a listing is live.",
+      description: "Inventory stays private until you choose to publish a listing.",
       href: "/dashboard/upload",
       actionLabel: rows.length > 0 ? "Add More" : "Upload Vehicle",
       isComplete: rows.length > 0,
@@ -257,8 +270,8 @@ export default async function DashboardPage() {
       id: "live-auction",
       title: "Live auction running",
       description: "At least one vehicle is actively collecting bids from buyers.",
-      href: liveRows.length > 0 ? "/dashboard/auctions" : "/dashboard/upload",
-      actionLabel: liveRows.length > 0 ? "Open Auctions" : "Start Auction",
+      href: liveRows.length > 0 ? "/dashboard/auctions" : "/dashboard",
+      actionLabel: liveRows.length > 0 ? "Open Auctions" : "Review Drafts",
       isComplete: liveRows.length > 0,
     },
     {
@@ -283,7 +296,7 @@ export default async function DashboardPage() {
     {
       label: "Total Inventory",
       value: rows.length.toLocaleString(),
-      description: `${endedRows.length.toLocaleString()} closed or ended`,
+      description: `${draftRows.length.toLocaleString()} drafts, ${endedRows.length.toLocaleString()} closed`,
       icon: Car,
     },
     {
@@ -467,8 +480,8 @@ export default async function DashboardPage() {
                   No live auctions yet
                 </p>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
-                  Upload a vehicle to start a seven-day auction and bring this
-                  snapshot to life.
+                  Upload inventory, then publish a prepared draft to start a
+                  seven-day auction and bring this snapshot to life.
                 </p>
                 <Link
                   href="/dashboard/upload"

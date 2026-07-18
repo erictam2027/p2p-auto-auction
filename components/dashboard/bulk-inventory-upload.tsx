@@ -168,7 +168,7 @@ export function BulkInventoryUpload() {
       setSelectedFile(null);
       setParsedVehicles([]);
       setStage("success");
-      toast.success("Success: Inventory synced to marketplace!");
+      toast.success("Inventory saved as drafts. Publish each listing when ready.");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to import vehicles.";

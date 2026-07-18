@@ -286,7 +286,7 @@ export async function generateMetadata({ params }: AuctionDetailPageProps) {
   const { id } = await params;
   const listing = await getAuctionListing(id);
 
-  if (!listing) {
+  if (!listing || listing.status.toLowerCase() === "draft") {
     return { title: "Listing Not Found | ApexAuction" };
   }
 
@@ -306,7 +306,7 @@ export default async function AuctionDetailPage({ params }: AuctionDetailPagePro
   } = await supabase.auth.getUser();
   const listing = await getAuctionListing(id);
 
-  if (!listing) {
+  if (!listing || (listing.status.toLowerCase() === "draft" && listing.sellerId !== user?.id)) {
     notFound();
   }
 

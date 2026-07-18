@@ -25,7 +25,6 @@ function parseInteger(value: string, fallback = 0) {
 function mapVehicleToInsert(
   vehicle: ParsedInventoryVehicle,
   sellerId: string,
-  endTime: string,
 ) {
   return {
     year: parseInteger(vehicle.year),
@@ -37,8 +36,8 @@ function mapVehicleToInsert(
     image_url: vehicle.imageUrl.trim() || null,
     image_urls: vehicle.imageUrl.trim() ? [vehicle.imageUrl.trim()] : [],
     seller_id: sellerId,
-    end_time: endTime,
-    status: "live",
+    end_time: null,
+    status: "draft",
   };
 }
 
@@ -71,8 +70,7 @@ export async function syncInventoryToMarketplace(
     return { ok: false, error: "You are not authorized to upload inventory." };
   }
 
-  const endTime = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-  const rows = vehicles.map((vehicle) => mapVehicleToInsert(vehicle, user.id, endTime));
+  const rows = vehicles.map((vehicle) => mapVehicleToInsert(vehicle, user.id));
   const { error } = await supabase.from("vehicles").insert(rows);
 
   if (error) {
@@ -84,6 +82,7 @@ export async function syncInventoryToMarketplace(
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/inventory");
+  revalidatePath("/dashboard/auctions");
   revalidatePath("/");
 
   return {

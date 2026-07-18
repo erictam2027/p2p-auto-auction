@@ -20,7 +20,7 @@ export default function DashboardUploadPage() {
         </Link>
         <h1 className="text-lg font-semibold text-slate-900">Upload New Inventory</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Complete the vehicle profile and publish it to the marketplace.
+          Complete the vehicle profile, then save a private draft or publish a seven-day auction.
         </p>
       </header>
 

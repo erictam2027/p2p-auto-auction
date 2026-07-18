@@ -195,9 +195,12 @@ export function VehicleUploadForm() {
     }
   }
 
-  async function onSubmit(values: VehicleUploadValues) {
+  async function onSubmit(
+    values: VehicleUploadValues,
+    listingIntent: "draft" | "publish",
+  ) {
     if (imageFiles.length === 0) {
-      toast.error("Add at least one vehicle photo before publishing.");
+      toast.error("Add at least one vehicle photo before saving a listing.");
       return;
     }
 
@@ -217,6 +220,7 @@ export function VehicleUploadForm() {
     formData.append("reservePrice", values.reservePrice ?? "");
     formData.append("highlights", values.highlights);
     formData.append("knownFlaws", values.knownFlaws ?? "");
+    formData.append("listingIntent", listingIntent);
 
     setIsSubmitting(true);
 
@@ -238,7 +242,12 @@ export function VehicleUploadForm() {
         return;
       }
 
-      toast.success(result.message ?? "Vehicle published successfully");
+      toast.success(
+        result.message ??
+          (listingIntent === "publish"
+            ? "Vehicle published successfully"
+            : "Vehicle saved as a draft"),
+      );
       router.push("/dashboard");
       router.refresh();
     } catch (error) {
@@ -263,7 +272,7 @@ export function VehicleUploadForm() {
       </CardHeader>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit((values) => onSubmit(values, "draft"))}>
           <CardContent className="space-y-8 pt-6">
             <section className="space-y-4">
               <h3 className="text-sm font-semibold text-slate-900">Core Details</h3>
@@ -590,21 +599,37 @@ export function VehicleUploadForm() {
             </section>
           </CardContent>
 
-          <CardFooter className="justify-end border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <CardFooter className="flex-col justify-end gap-2 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row">
             <Button
-              type="submit"
+              type="button"
+              variant="outline"
               disabled={isSubmitting}
+              onClick={() => void form.handleSubmit((values) => onSubmit(values, "draft"))()}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Draft"
+              )}
+            </Button>
+            <Button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => void form.handleSubmit((values) => onSubmit(values, "publish"))()}
               className="bg-slate-900 text-white hover:bg-slate-800"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Uploading…
+                  Publishing...
                 </>
               ) : (
                 <>
                   <Upload className="size-4" />
-                  Publish Vehicle
+                  Publish 7-Day Auction
                 </>
               )}
             </Button>
