@@ -64,6 +64,19 @@ export async function startKeySavvyCheckout(
     return { ok: false, message: "A valid winning bid is required before checkout." };
   }
 
+  const { data: existingEscrow } = await supabase
+    .from("escrow_transactions")
+    .select("id, status, keysavvy_checkout_url")
+    .eq("vehicle_id", trimmedVehicleId)
+    .maybeSingle();
+
+  if (
+    existingEscrow?.keysavvy_checkout_url &&
+    existingEscrow.status !== "cancelled"
+  ) {
+    return { ok: true, url: existingEscrow.keysavvy_checkout_url };
+  }
+
   const { data: sellerProfile } = await supabase
     .from("profiles")
     .select("email")
@@ -85,12 +98,6 @@ export async function startKeySavvyCheckout(
   });
 
   const platformFeeCents = computePlatformFeeCents(salePriceDollars);
-
-  const { data: existingEscrow } = await supabase
-    .from("escrow_transactions")
-    .select("id")
-    .eq("vehicle_id", trimmedVehicleId)
-    .maybeSingle();
 
   const escrowPayload = {
     vehicle_id: trimmedVehicleId,

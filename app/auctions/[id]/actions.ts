@@ -1,9 +1,10 @@
 "use server";
 
-import { getSnipeExtendedEndTime, isAuctionLive } from "@/lib/auctions/vehicle-status";
+import { isAuctionLive } from "@/lib/auctions/vehicle-status";
 import { requireCardOnFile } from "@/lib/bidding/require-card-on-file";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
 type PlaceBidResult =
   | {
@@ -34,40 +35,6 @@ function parseBidAmount(value: string) {
   const parsed = Number(normalized);
 
   return Number.isFinite(parsed) ? Math.round(parsed) : null;
-}
-
-function readNumber(row: Record<string, unknown> | null | undefined, keys: string[]) {
-  if (!row) return 0;
-
-  for (const key of keys) {
-    const value = row[key];
-    if (typeof value === "number" && Number.isFinite(value)) {
-      return value;
-    }
-    if (typeof value === "string") {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) {
-        return parsed;
-      }
-    }
-  }
-
-  return 0;
-}
-
-async function getHighestBidAmount(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  vehicleId: string,
-) {
-  const { data } = await supabase
-    .from("bids")
-    .select("amount, bid_amount, current_bid")
-    .eq("vehicle_id", vehicleId);
-
-  return (data ?? []).reduce((highest, bid) => {
-    const amount = readNumber(bid, ["amount", "bid_amount", "current_bid"]);
-    return Math.max(highest, amount);
-  }, 0);
 }
 
 async function loadVehicleForBidding(
@@ -117,22 +84,6 @@ async function requireIdentityVerified(
   return { ok: true };
 }
 
-async function applySnipeExtensionIfNeeded(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  vehicle: VehicleRow,
-) {
-  const extendedEndTime = getSnipeExtendedEndTime(vehicle.end_time);
-
-  if (!extendedEndTime) {
-    return;
-  }
-
-  await supabase
-    .from("vehicles")
-    .update({ end_time: extendedEndTime })
-    .eq("id", vehicle.id);
-}
-
 async function notifyPreviousHighBidder(
   vehicle: VehicleRow,
   newAmount: number,
@@ -170,35 +121,76 @@ async function notifyPreviousHighBidder(
   });
 }
 
-async function commitBid(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+function readAtomicBidCents(data: unknown) {
+  const payload = Array.isArray(data) ? data[0] : data;
+
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const newBidCents = (payload as Record<string, unknown>).new_bid_cents;
+  const newBid = (payload as Record<string, unknown>).new_bid;
+
+  if (typeof newBidCents === "number" && Number.isFinite(newBidCents)) {
+    return newBidCents;
+  }
+
+  if (typeof newBid === "number" && Number.isFinite(newBid)) {
+    return newBid * 100;
+  }
+
+  return null;
+}
+
+function mapAtomicBidError(message: string) {
+  if (/could not find the function|function .* does not exist/i.test(message)) {
+    return "Bidding is not fully configured yet. Run the latest Supabase migrations and try again.";
+  }
+
+  return message;
+}
+
+async function commitAtomicBid(
   vehicle: VehicleRow,
   userId: string,
-  amount: number,
+  amount: number | null,
 ): Promise<PlaceBidResult> {
-  const { error: insertError } = await supabase.from("bids").insert({
-    vehicle_id: vehicle.id,
-    user_id: userId,
-    amount,
+  const admin = createAdminClient();
+
+  if (!admin) {
+    return {
+      ok: false,
+      error: "Bidding is not fully configured yet. Add SUPABASE_SERVICE_ROLE_KEY and try again.",
+    };
+  }
+
+  const { data, error } = await admin.rpc("place_bid_atomic", {
+    p_vehicle_id: vehicle.id,
+    p_bidder_id: userId,
+    p_amount: amount,
+    p_min_increment: MIN_BID_INCREMENT,
+    p_snipe_extension_seconds: 120,
   });
 
-  if (insertError) {
-    return { ok: false, error: insertError.message };
+  if (error) {
+    return { ok: false, error: mapAtomicBidError(error.message) };
   }
 
-  const { error: updateError } = await supabase
-    .from("vehicles")
-    .update({ current_bid: amount })
-    .eq("id", vehicle.id);
+  const newBidCents = readAtomicBidCents(data);
 
-  if (updateError) {
-    return { ok: false, error: updateError.message };
+  if (newBidCents === null) {
+    return {
+      ok: false,
+      error: "Bid was accepted but the response was incomplete. Refresh the listing.",
+    };
   }
 
-  await applySnipeExtensionIfNeeded(supabase, vehicle);
-  await notifyPreviousHighBidder(vehicle, amount, userId);
+  await notifyPreviousHighBidder(vehicle, newBidCents / 100, userId);
+  revalidatePath(`/auctions/${vehicle.id}`);
+  revalidatePath("/");
+  revalidatePath("/browse");
 
-  return { ok: true, newBidCents: amount * 100 };
+  return { ok: true, newBidCents };
 }
 
 export async function placeBid(
@@ -246,18 +238,7 @@ export async function placeBid(
     return { ok: false, error: cardCheck.error };
   }
 
-  const currentBid = readNumber(vehicle, ["current_bid"]);
-  const highestBid = Math.max(currentBid, await getHighestBidAmount(supabase, vehicleId));
-  const minimum = highestBid + MIN_BID_INCREMENT;
-
-  if (amount < minimum) {
-    return {
-      ok: false,
-      error: `Bid must be at least $${minimum.toLocaleString()}.`,
-    };
-  }
-
-  return commitBid(supabase, vehicle, user.id, amount);
+  return commitAtomicBid(vehicle, user.id, amount);
 }
 
 export async function placeQuickBid(vehicleId: string): Promise<PlaceBidResult> {
@@ -296,9 +277,5 @@ export async function placeQuickBid(vehicleId: string): Promise<PlaceBidResult> 
     return { ok: false, error: cardCheck.error };
   }
 
-  const currentBid = readNumber(vehicle, ["current_bid"]);
-  const highestBid = Math.max(currentBid, await getHighestBidAmount(supabase, vehicleId));
-  const amount = highestBid + MIN_BID_INCREMENT;
-
-  return commitBid(supabase, vehicle, user.id, amount);
+  return commitAtomicBid(vehicle, user.id, null);
 }

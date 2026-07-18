@@ -79,6 +79,7 @@ function buildDirectDatabaseUrl(parsed, projectRef) {
 async function checkSchema(supabase) {
   const checks = {
     closeExpiredAuctionsRpc: false,
+    atomicBiddingRpc: false,
     escrowTransactionsTable: false,
     vehiclesWinnerId: false,
     bidsUserId: false,
@@ -86,6 +87,23 @@ async function checkSchema(supabase) {
 
   const { error: rpcError } = await supabase.rpc("close_expired_auctions");
   checks.closeExpiredAuctionsRpc = !rpcError;
+
+  const { error: biddingRpcError } = await supabase
+    .rpc("place_bid_atomic", {
+      p_vehicle_id: "00000000-0000-0000-0000-000000000000",
+      p_bidder_id: "00000000-0000-0000-0000-000000000000",
+      p_amount: 100,
+      p_min_increment: 100,
+      p_snipe_extension_seconds: 120,
+    });
+  checks.atomicBiddingRpc =
+    !biddingRpcError ||
+    (
+      biddingRpcError.code !== "PGRST202" &&
+      !/could not find the function|function .* does not exist/i.test(
+        biddingRpcError.message ?? "",
+      )
+    );
 
   const { error: escrowError } = await supabase.from("escrow_transactions").select("id").limit(1);
   checks.escrowTransactionsTable = !escrowError;
@@ -110,6 +128,7 @@ async function checkSchemaViaPg(databaseUrl) {
 
   const checks = {
     closeExpiredAuctionsRpc: false,
+    atomicBiddingRpc: false,
     escrowTransactionsTable: false,
     vehiclesWinnerId: false,
     bidsUserId: false,
@@ -117,6 +136,9 @@ async function checkSchemaViaPg(databaseUrl) {
 
   const rpcRows = await client.query(
     "SELECT to_regprocedure('public.close_expired_auctions()') IS NOT NULL AS ok",
+  );
+  const biddingRpcRows = await client.query(
+    "SELECT to_regprocedure('public.place_bid_atomic(uuid, uuid, integer, integer, integer)') IS NOT NULL AS ok",
   );
   const escrowRows = await client.query(
     "SELECT to_regclass('public.escrow_transactions') IS NOT NULL AS ok",
@@ -129,6 +151,7 @@ async function checkSchemaViaPg(databaseUrl) {
   );
 
   checks.closeExpiredAuctionsRpc = Boolean(rpcRows.rows[0]?.ok);
+  checks.atomicBiddingRpc = Boolean(biddingRpcRows.rows[0]?.ok);
   checks.escrowTransactionsTable = Boolean(escrowRows.rows[0]?.ok);
   checks.vehiclesWinnerId = Number(winnerRows.rows[0]?.ok) > 0;
   checks.bidsUserId = Number(bidRows.rows[0]?.ok) > 0;
@@ -170,6 +193,7 @@ async function applyWithPg(databaseUrl) {
         join(rootDir, "supabase/migrations/20260716120000_finalize_auction_close.sql"),
         join(rootDir, "supabase/migrations/20260716130000_vehicles_seller_and_core_columns.sql"),
         join(rootDir, "supabase/migrations/20260716140000_grant_api_roles.sql"),
+        join(rootDir, "supabase/migrations/20260717180000_atomic_bidding_rpc.sql"),
       ];
 
       for (const migrationFile of migrationFiles) {

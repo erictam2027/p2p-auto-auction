@@ -1,6 +1,7 @@
 "use client";
 
 import { startKeySavvyCheckout } from "@/app/auctions/[id]/checkout-actions";
+import { EscrowProgress } from "@/components/escrow/escrow-progress";
 import { TrustBadge } from "@/components/trust/trust-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -111,6 +112,17 @@ export function WinnerCheckoutPanel({
             {formatCurrency(platformFeeCents)}
           </span>
         </div>
+      </div>
+
+      <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+        <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-600">
+          Closing progress
+        </p>
+        <EscrowProgress
+          escrowStatus={escrowStatus}
+          platformFeeStatus={platformFeeStatus}
+          compact
+        />
       </div>
 
       {!checkoutStarted ? (
