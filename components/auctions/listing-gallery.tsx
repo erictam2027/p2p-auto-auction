@@ -1,11 +1,11 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 import { useState } from "react";
 
 type ListingGalleryProps = {
-  imageCount: number;
-  imageUrl?: string;
+  imageUrls: string[];
   title: string;
 };
 
@@ -22,11 +22,12 @@ const IMAGE_LABELS = [
   "Documentation",
 ] as const;
 
-export function ListingGallery({ imageCount, imageUrl, title }: ListingGalleryProps) {
-  const images = Array.from({ length: imageCount }, (_, index) => index);
+export function ListingGallery({ imageUrls, title }: ListingGalleryProps) {
+  const images = imageUrls.length > 0 ? imageUrls : [null];
   const [activeIndex, setActiveIndex] = useState(0);
 
   const activeLabel = IMAGE_LABELS[activeIndex % IMAGE_LABELS.length];
+  const activeImage = images[activeIndex] ?? null;
 
   return (
     <div className="space-y-3">
@@ -38,13 +39,15 @@ export function ListingGallery({ imageCount, imageUrl, title }: ListingGalleryPr
         aria-live="polite"
         aria-label={`${title}, ${activeLabel}`}
       >
-        <div className="aspect-[16/10]">
-          {imageUrl && activeIndex === 0 ? (
-            <div
-              role="img"
-              aria-label={title}
-              className="h-full w-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${imageUrl})` }}
+        <div className="relative aspect-[16/10]">
+          {activeImage ? (
+            <Image
+              src={activeImage}
+              alt={`${title} - ${activeLabel}`}
+              fill
+              sizes="(min-width: 1024px) 65vw, 100vw"
+              priority
+              className="h-full w-full object-cover"
             />
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-2 p-8">
@@ -58,17 +61,15 @@ export function ListingGallery({ imageCount, imageUrl, title }: ListingGalleryPr
                 <circle cx="44" cy="58" r="10" />
                 <circle cx="156" cy="58" r="10" />
               </svg>
-              <p className="text-sm font-medium text-slate-700">{activeLabel}</p>
-              <p className="text-xs text-slate-500">
-                Photo {activeIndex + 1} of {imageCount}
-              </p>
+              <p className="text-sm font-medium text-slate-700">Photos coming soon</p>
+              <p className="text-xs text-slate-500">The dealer has not added listing photos yet.</p>
             </div>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-5 gap-2 sm:grid-cols-6">
-        {images.map((index) => {
+        {images.map((image, index) => {
           const isActive = activeIndex === index;
           const label = IMAGE_LABELS[index % IMAGE_LABELS.length];
 
@@ -80,16 +81,19 @@ export function ListingGallery({ imageCount, imageUrl, title }: ListingGalleryPr
               aria-label={`View ${label}, photo ${index + 1}`}
               aria-pressed={isActive}
               className={cn(
-                "aspect-[4/3] overflow-hidden rounded border bg-slate-100 transition-colors",
+                "relative aspect-[4/3] overflow-hidden rounded border bg-slate-100 transition-colors",
                 isActive
                   ? "border-slate-900 ring-1 ring-slate-900"
                   : "border-slate-200 hover:border-slate-400",
               )}
             >
-              {imageUrl && index === 0 ? (
-                <div
-                  className="h-full w-full bg-cover bg-center"
-                  style={{ backgroundImage: `url(${imageUrl})` }}
+              {image ? (
+                <Image
+                  src={image}
+                  alt={`${title} - ${label}`}
+                  fill
+                  sizes="120px"
+                  className="h-full w-full object-cover"
                 />
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-1 px-1">

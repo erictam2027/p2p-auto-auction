@@ -142,6 +142,13 @@ function vehicleToListing(
     ["title_status", "titleStatus"],
     "Clean title verification pending",
   );
+  const primaryImageUrl = readString(vehicle, ["image_url", "imageUrl"]);
+  const storedImageUrls = readStringArray(vehicle, ["image_urls", "imageUrls"], []);
+  const imageUrls = storedImageUrls.length
+    ? storedImageUrls
+    : primaryImageUrl
+      ? [primaryImageUrl]
+      : [];
 
   const nmvtisStatus = readString(vehicle, ["nmvtis_status", "nmvtisStatus"]);
   const nmvtisVerified = readBoolean(vehicle, ["nmvtis_verified", "nmvtisVerified"], false);
@@ -184,7 +191,7 @@ function vehicleToListing(
     winnerId,
     isLive: live,
     winnerLabel: "",
-    imageUrl: readString(vehicle, ["image_url", "imageUrl"], ""),
+    imageUrl: primaryImageUrl,
     nmvtisVerified,
     inspectionAvailable: readBoolean(
       vehicle,
@@ -195,7 +202,7 @@ function vehicleToListing(
     sellerId: readString(vehicle, ["seller_id", "owner_id", "dealer_id", "user_id"]),
     sellerName: readString(vehicle, ["dealership_name", "seller_name"], "Seller"),
     carfaxUrl: readString(vehicle, ["carfax_url", "carfaxUrl"]),
-    imageCount: 1,
+    imageUrls,
     reservePriceCents: (() => {
       const reserve = readNumber(vehicle, ["reserve_price", "reservePrice"], 0);
       return reserve > 0 ? reserve * 100 : null;
@@ -236,7 +243,7 @@ async function getAuctionListing(id: string) {
   const { data: vehicle, error: vehicleError } = await supabase
     .from("vehicles")
     .select(
-      "id, year, make, model, trim, mileage, location, city_state, vin, seller_id, winner_id, image_url, carfax_url, engine, transmission, drivetrain, exterior_color, interior_color, title_status, highlights, known_flaws, recent_service, modifications, equipment, dealer_notes, end_time, current_bid, status, reserve_price, nmvtis_verified, nmvtis_status, nmvtis_report_url, inspection_available, bid_count",
+      "id, year, make, model, trim, mileage, location, city_state, vin, seller_id, winner_id, image_url, image_urls, carfax_url, engine, transmission, drivetrain, exterior_color, interior_color, title_status, highlights, known_flaws, recent_service, modifications, equipment, dealer_notes, end_time, current_bid, status, reserve_price, nmvtis_verified, nmvtis_status, nmvtis_report_url, inspection_available, bid_count",
     )
     .eq("id", id)
     .single();

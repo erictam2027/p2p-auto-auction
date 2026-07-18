@@ -18,7 +18,7 @@ export type ListingDetail = TrendingAuction & {
   sellerId: string;
   sellerName: string;
   carfaxUrl: string;
-  imageCount: number;
+  imageUrls: string[];
   engine: string;
   transmission: string;
   drivetrain: string;
@@ -99,7 +99,7 @@ function buildListing(auction: TrendingAuction): ListingDetail {
     sellerId: "",
     sellerName: "Seller",
     carfaxUrl: "",
-    imageCount: 6,
+    imageUrls: auction.imageUrl ? [auction.imageUrl] : [],
     engine: "Pending verification",
     transmission: "Pending verification",
     drivetrain: "Pending verification",

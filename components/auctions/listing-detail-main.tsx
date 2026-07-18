@@ -11,8 +11,7 @@ type ListingDetailMainProps = {
 export function ListingDetailMain({ listing, title }: ListingDetailMainProps) {
   return (
     <ListingGallery
-      imageCount={listing.imageCount}
-      imageUrl={listing.imageUrl}
+      imageUrls={listing.imageUrls}
       title={title}
     />
   );

@@ -82,6 +82,7 @@ async function checkSchema(supabase) {
     atomicBiddingRpc: false,
     escrowTransactionsTable: false,
     vehiclesWinnerId: false,
+    vehicleImageUrls: false,
     bidsUserId: false,
   };
 
@@ -111,6 +112,12 @@ async function checkSchema(supabase) {
   const { error: vehicleError } = await supabase.from("vehicles").select("winner_id").limit(1);
   checks.vehiclesWinnerId = !vehicleError;
 
+  const { error: imageUrlsError } = await supabase
+    .from("vehicles")
+    .select("image_urls")
+    .limit(1);
+  checks.vehicleImageUrls = !imageUrlsError;
+
   const { error: bidsError } = await supabase.from("bids").select("user_id").limit(1);
   checks.bidsUserId = !bidsError;
 
@@ -131,6 +138,7 @@ async function checkSchemaViaPg(databaseUrl) {
     atomicBiddingRpc: false,
     escrowTransactionsTable: false,
     vehiclesWinnerId: false,
+    vehicleImageUrls: false,
     bidsUserId: false,
   };
 
@@ -146,6 +154,9 @@ async function checkSchemaViaPg(databaseUrl) {
   const winnerRows = await client.query(
     "SELECT COUNT(*)::int AS ok FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'vehicles' AND column_name = 'winner_id'",
   );
+  const imageUrlsRows = await client.query(
+    "SELECT COUNT(*)::int AS ok FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'vehicles' AND column_name = 'image_urls'",
+  );
   const bidRows = await client.query(
     "SELECT COUNT(*)::int AS ok FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'bids' AND column_name = 'user_id'",
   );
@@ -154,6 +165,7 @@ async function checkSchemaViaPg(databaseUrl) {
   checks.atomicBiddingRpc = Boolean(biddingRpcRows.rows[0]?.ok);
   checks.escrowTransactionsTable = Boolean(escrowRows.rows[0]?.ok);
   checks.vehiclesWinnerId = Number(winnerRows.rows[0]?.ok) > 0;
+  checks.vehicleImageUrls = Number(imageUrlsRows.rows[0]?.ok) > 0;
   checks.bidsUserId = Number(bidRows.rows[0]?.ok) > 0;
 
   await client.end();
@@ -194,6 +206,7 @@ async function applyWithPg(databaseUrl) {
         join(rootDir, "supabase/migrations/20260716130000_vehicles_seller_and_core_columns.sql"),
         join(rootDir, "supabase/migrations/20260716140000_grant_api_roles.sql"),
         join(rootDir, "supabase/migrations/20260717180000_atomic_bidding_rpc.sql"),
+        join(rootDir, "supabase/migrations/20260718110000_vehicle_image_gallery.sql"),
       ];
 
       for (const migrationFile of migrationFiles) {

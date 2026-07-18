@@ -35,6 +35,7 @@ function mapVehicleToInsert(
     mileage: parseInteger(vehicle.mileage) || null,
     current_bid: parseInteger(vehicle.currentBid),
     image_url: vehicle.imageUrl.trim() || null,
+    image_urls: vehicle.imageUrl.trim() ? [vehicle.imageUrl.trim()] : [],
     seller_id: sellerId,
     end_time: endTime,
     status: "live",

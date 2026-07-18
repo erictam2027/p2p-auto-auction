@@ -9,6 +9,8 @@ export type UploadVehicleResult =
   | { ok: true; message?: string }
   | { ok: false; message: string };
 
+const MAX_VEHICLE_IMAGES = 12;
+
 function splitLines(value: string) {
   return value
     .split(/\n/)
@@ -24,6 +26,43 @@ function readString(formData: FormData, key: string) {
 function readInteger(formData: FormData, key: string) {
   const parsed = Number.parseInt(readString(formData, key).replace(/[$,\s]/g, ""), 10);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function readVehicleImageUrls(formData: FormData, userId: string) {
+  const rawValue = readString(formData, "imageUrls");
+
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+
+    if (!Array.isArray(parsed) || parsed.length === 0 || parsed.length > MAX_VEHICLE_IMAGES) {
+      return null;
+    }
+
+    const storageOrigin = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).origin;
+    const expectedPrefix = `/storage/v1/object/public/vehicle-images/${userId}/`;
+    const urls = parsed.filter((value): value is string => typeof value === "string");
+
+    if (urls.length !== parsed.length || new Set(urls).size !== urls.length) {
+      return null;
+    }
+
+    const isOwnedStorageUrl = urls.every((value) => {
+      try {
+        const url = new URL(value);
+        return url.origin === storageOrigin && url.pathname.startsWith(expectedPrefix);
+      } catch {
+        return false;
+      }
+    });
+
+    return isOwnedStorageUrl ? urls : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function uploadVehicle(formData: FormData): Promise<UploadVehicleResult> {
@@ -46,14 +85,10 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
     return { ok: false, message: "You are not authorized to upload inventory." };
   }
 
-  const image = formData.get("image");
+  const imageUrls = readVehicleImageUrls(formData, user.id);
 
-  if (!(image instanceof File) || image.size === 0) {
-    return { ok: false, message: "Please select a vehicle image to upload." };
-  }
-
-  if (image.type && !image.type.startsWith("image/")) {
-    return { ok: false, message: "Vehicle image must be an image file." };
+  if (!imageUrls) {
+    return { ok: false, message: "Upload between 1 and 12 vehicle photos before publishing." };
   }
 
   const carfax = formData.get("carfax");
@@ -103,25 +138,6 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
     };
   }
 
-  const extension = image.name.split(".").pop()?.toLowerCase() || "jpg";
-  const storagePath = `${user.id}/${Date.now()}-${vin}.${extension}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("vehicle-images")
-    .upload(storagePath, image, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: image.type || undefined,
-    });
-
-  if (uploadError) {
-    return { ok: false, message: uploadError.message };
-  }
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("vehicle-images").getPublicUrl(storagePath);
-
   let carfaxUrl: string | null = null;
 
   if (carfax instanceof File && carfax.size > 0) {
@@ -159,7 +175,8 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
     title_status: titleStatus,
     highlights: splitLines(highlights).join("\n") || null,
     known_flaws: splitLines(knownFlaws).join("\n") || null,
-    image_url: publicUrl,
+    image_url: imageUrls[0],
+    image_urls: imageUrls,
     carfax_url: carfaxUrl,
     seller_id: user.id,
     current_bid: 0,
