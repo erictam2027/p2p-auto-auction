@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Upload } from "lucide-react";
+import { FileText, Loader2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -85,6 +85,7 @@ export function VehicleUploadForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [historyFile, setHistoryFile] = useState<File | null>(null);
 
   const form = useForm<VehicleUploadValues>({
     resolver: zodResolver(vehicleUploadSchema),
@@ -115,6 +116,9 @@ export function VehicleUploadForm() {
 
     const formData = new FormData();
     formData.append("image", imageFile);
+    if (historyFile) {
+      formData.append("carfax", historyFile);
+    }
     formData.append("year", values.year);
     formData.append("make", values.make);
     formData.append("model", values.model);
@@ -415,6 +419,34 @@ export function VehicleUploadForm() {
                     ? `Selected: ${imageFile.name}`
                     : "Upload a high-resolution hero image for the listing."}
                 </p>
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-slate-900">
+                Vehicle History Document
+              </h3>
+              <div className="rounded-md border border-slate-200 bg-white p-5">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50">
+                    <FileText className="size-5 text-slate-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <Input
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      className="border-slate-300 bg-white file:mr-4 file:rounded-md file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
+                      onChange={(event) => {
+                        setHistoryFile(event.target.files?.[0] ?? null);
+                      }}
+                    />
+                    <p className="mt-2 text-xs text-slate-600">
+                      {historyFile
+                        ? `Selected: ${historyFile.name}`
+                        : "Optional PDF for Carfax, AutoCheck, inspection, or dealer disclosure packet."}
+                    </p>
+                  </div>
+                </div>
               </div>
             </section>
           </CardContent>

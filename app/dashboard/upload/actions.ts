@@ -52,6 +52,20 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
     return { ok: false, message: "Please select a vehicle image to upload." };
   }
 
+  if (image.type && !image.type.startsWith("image/")) {
+    return { ok: false, message: "Vehicle image must be an image file." };
+  }
+
+  const carfax = formData.get("carfax");
+
+  if (carfax instanceof File && carfax.size > 0) {
+    const fileName = carfax.name.toLowerCase();
+
+    if (carfax.type !== "application/pdf" && !fileName.endsWith(".pdf")) {
+      return { ok: false, message: "Vehicle history report must be a PDF file." };
+    }
+  }
+
   const year = readInteger(formData, "year");
   const make = readString(formData, "make");
   const model = readString(formData, "model");
@@ -67,7 +81,6 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
   const knownFlaws = readString(formData, "knownFlaws");
   const location = readString(formData, "location");
   const reservePrice = readInteger(formData, "reservePrice");
-  const carfax = formData.get("carfax");
 
   if (!year || !make || !model || !vin) {
     return { ok: false, message: "Year, make, model, and VIN are required." };
@@ -112,10 +125,6 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
   let carfaxUrl: string | null = null;
 
   if (carfax instanceof File && carfax.size > 0) {
-    if (carfax.type !== "application/pdf") {
-      return { ok: false, message: "Carfax report must be a PDF file." };
-    }
-
     const carfaxPath = `${user.id}/${Date.now()}-${vin}-carfax.pdf`;
 
     const { error: carfaxUploadError } = await supabase.storage

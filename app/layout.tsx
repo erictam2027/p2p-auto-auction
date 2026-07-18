@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "P2P Auto Auction",
-  description: "Peer-to-peer automotive auction marketplace with verified escrow and title clearing.",
+  title: "ApexAuction",
+  description:
+    "Verified auto auction marketplace for dealer inventory, bidder payments, and escrow-backed title transfer.",
 };
 
 export default function RootLayout({

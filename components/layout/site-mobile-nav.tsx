@@ -108,20 +108,22 @@ export function SiteMobileNav({
           ) : null}
           {showApplyAsDealer ? (
             <Link
-              href="/dealer-application"
+              href="/sell"
               onClick={() => setOpen(false)}
               className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
-              Apply as Dealer
+              Sell on ApexAuction
             </Link>
           ) : null}
-          <Link
-            href="/sell"
-            onClick={() => setOpen(false)}
-            className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Sell on ApexAuction
-          </Link>
+          {!showApplyAsDealer ? (
+            <Link
+              href="/sell"
+              onClick={() => setOpen(false)}
+              className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Sell on ApexAuction
+            </Link>
+          ) : null}
         </nav>
       </DialogContent>
     </Dialog>

@@ -48,6 +48,12 @@ export async function SiteHeader() {
             >
               Browse Auctions
             </Link>
+            <Link
+              href="/sell"
+              className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
+            >
+              Sell
+            </Link>
             {isVerifiedDealerUser ? (
               <Link
                 href="/dashboard"
@@ -115,9 +121,9 @@ export async function SiteHeader() {
                 size="sm"
                 className="hidden bg-slate-900 text-white hover:bg-slate-800 sm:inline-flex"
                 nativeButton={false}
-                render={<Link href="/dealer-application" />}
+                render={<Link href="/sell" />}
               >
-                Apply as Dealer
+                Sell on ApexAuction
               </Button>
             ) : null}
             <SiteMobileNav

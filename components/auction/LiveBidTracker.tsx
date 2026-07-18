@@ -162,7 +162,6 @@ export function LiveBidTracker({
           if (typeof amount === "number" && Number.isFinite(amount)) {
             setCurrentBidCents((current) => Math.max(current, amount * 100));
           }
-          setBidsCount((count) => count + 1);
         },
       )
       .subscribe();
@@ -213,7 +212,6 @@ export function LiveBidTracker({
     }
 
     setCurrentBidCents(result.newBidCents);
-    setBidsCount((count) => count + 1);
     toast.success("Bid placed successfully");
   }
 
@@ -233,7 +231,6 @@ export function LiveBidTracker({
     }
 
     setCurrentBidCents(result.newBidCents);
-    setBidsCount((count) => count + 1);
     setCustomBid("");
     toast.success("Bid placed successfully");
   }

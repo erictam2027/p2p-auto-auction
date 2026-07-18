@@ -6,6 +6,7 @@ import { ListingTrustStrip } from "@/components/auctions/listing-trust-strip";
 import { WinnerCheckoutPanel } from "@/components/auctions/winner-checkout-panel";
 import type { EscrowTransactionSummary } from "@/lib/escrow/types";
 import type { ListingDetail } from "@/lib/data/listing-details";
+import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils/format";
 import { useEffect, useState } from "react";
 
@@ -17,7 +18,23 @@ type BiddingPanelProps = {
 
 const SNIPE_THRESHOLD_MS = 2 * 60 * 1000;
 
+function normalizeEndTime(value: unknown) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "";
+  }
+
+  const parsed = Date.parse(value);
+
+  if (!Number.isFinite(parsed)) {
+    return "";
+  }
+
+  return new Date(parsed).toISOString();
+}
+
 export function BiddingPanel({ listing, viewerUserId, escrow }: BiddingPanelProps) {
+  const [liveEndTime, setLiveEndTime] = useState(listing.endTime);
+  const [liveStatus, setLiveStatus] = useState(listing.status);
   const [remainingMs, setRemainingMs] = useState(() => {
     if (!listing.endTime) {
       return 0;
@@ -26,12 +43,14 @@ export function BiddingPanel({ listing, viewerUserId, escrow }: BiddingPanelProp
     return new Date(listing.endTime).getTime() - Date.now();
   });
 
+  const auctionIsLive = listing.isLive && liveStatus.toLowerCase() === "live";
+
   useEffect(() => {
-    if (!listing.isLive || !listing.endTime) {
+    if (!auctionIsLive || !liveEndTime) {
       return;
     }
 
-    const endTimestamp = new Date(listing.endTime).getTime();
+    const endTimestamp = new Date(liveEndTime).getTime();
 
     if (!Number.isFinite(endTimestamp)) {
       return;
@@ -45,17 +64,54 @@ export function BiddingPanel({ listing, viewerUserId, escrow }: BiddingPanelProp
     const interval = setInterval(updateRemaining, 1000);
 
     return () => clearInterval(interval);
-  }, [listing.endTime, listing.isLive]);
+  }, [auctionIsLive, liveEndTime]);
+
+  useEffect(() => {
+    if (!listing.isLive) {
+      return;
+    }
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`vehicle-timing-${listing.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "vehicles",
+          filter: `id=eq.${listing.id}`,
+        },
+        (payload) => {
+          const row = payload.new as Record<string, unknown>;
+          const nextEndTime = normalizeEndTime(row.end_time);
+          const nextStatus = row.status;
+
+          if (nextEndTime) {
+            setLiveEndTime(nextEndTime);
+          }
+
+          if (typeof nextStatus === "string" && nextStatus.trim().length > 0) {
+            setLiveStatus(nextStatus);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [listing.id, listing.isLive]);
 
   const inSnipeWindow =
-    listing.isLive && remainingMs > 0 && remainingMs <= SNIPE_THRESHOLD_MS;
+    auctionIsLive && remainingMs > 0 && remainingMs <= SNIPE_THRESHOLD_MS;
 
   const isWinner =
     Boolean(viewerUserId) &&
     Boolean(listing.winnerId) &&
     viewerUserId === listing.winnerId;
 
-  if (!listing.isLive) {
+  if (!auctionIsLive) {
     return (
       <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
         <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-6 text-center">
@@ -100,7 +156,7 @@ export function BiddingPanel({ listing, viewerUserId, escrow }: BiddingPanelProp
         initialCurrentBidCents={listing.currentBidCents}
         initialBidsCount={listing.bidCount}
         location={listing.location}
-        isLive={listing.isLive}
+        isLive={auctionIsLive}
         reservePriceCents={listing.reservePriceCents ?? null}
       />
 
@@ -108,9 +164,9 @@ export function BiddingPanel({ listing, viewerUserId, escrow }: BiddingPanelProp
         <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
           Time remaining
         </p>
-        {listing.endTime ? (
+        {liveEndTime ? (
           <CountdownTimer
-            endTime={listing.endTime}
+            endTime={liveEndTime}
             className={
               inSnipeWindow
                 ? "mt-1 block text-2xl font-semibold text-orange-600"
