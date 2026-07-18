@@ -7,6 +7,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 type ListingDetailTabsProps = {
   listing: ListingDetail;
@@ -42,6 +43,77 @@ function SectionBlock({
       ) : null}
       <div className="mt-4">{children}</div>
     </section>
+  );
+}
+
+function SaleTerms({ listing }: ListingDetailTabsProps) {
+  const saleLight = listing.saleLight.toLowerCase();
+  const saleTerms =
+    saleLight === "green"
+      ? {
+          label: "Green - seller representation",
+          description: "Seller reports no known major defects beyond the disclosed listing details.",
+          className: "border-emerald-200 bg-emerald-50 text-emerald-800",
+        }
+      : saleLight === "red"
+        ? {
+            label: "Red - sold as-is",
+            description: "The vehicle is offered as-is, subject to the marketplace terms and stated disclosures.",
+            className: "border-red-200 bg-red-50 text-red-800",
+          }
+        : saleLight === "yellow"
+          ? {
+              label: "Yellow - disclosures apply",
+              description: "Review the seller announcements and known flaws before bidding.",
+              className: "border-amber-200 bg-amber-50 text-amber-800",
+            }
+          : {
+              label: "Terms not supplied",
+              description: "Ask the seller to clarify sale terms before bidding.",
+              className: "border-slate-200 bg-slate-50 text-slate-700",
+            };
+
+  const titleAvailability =
+    listing.titlePresent === true
+      ? "Title in seller possession"
+      : listing.titlePresent === false
+        ? "Title not currently in possession"
+        : "Title availability not supplied";
+
+  return (
+    <SectionBlock
+      title="Sale Terms"
+      description="Seller-reported terms help you evaluate this auction. They are not an independent inspection."
+    >
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Badge variant="outline" className={saleTerms.className}>
+            {saleTerms.label}
+          </Badge>
+          <p className="text-sm text-slate-700">{saleTerms.description}</p>
+        </div>
+        <dl className="grid gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-slate-500">Title</dt>
+            <dd className="mt-0.5 font-medium text-slate-900">{titleAvailability}</dd>
+          </div>
+          <div>
+            <dt className="text-slate-500">Condition grade</dt>
+            <dd className="mt-0.5 font-medium text-slate-900">
+              {listing.conditionGrade === null
+                ? "Not supplied"
+                : `${listing.conditionGrade.toFixed(1)} / 5.0`}
+            </dd>
+          </div>
+        </dl>
+        {listing.sellerAnnouncements.length > 0 ? (
+          <div className="border-t border-slate-100 pt-4">
+            <p className="mb-3 text-sm font-medium text-slate-900">Seller announcements</p>
+            <BulletList items={listing.sellerAnnouncements} />
+          </div>
+        ) : null}
+      </div>
+    </SectionBlock>
   );
 }
 
@@ -95,7 +167,8 @@ export function ListingDetailTabs({ listing }: ListingDetailTabsProps) {
         </SectionBlock>
       </TabsContent>
 
-      <TabsContent value="condition" className="pt-2">
+      <TabsContent value="condition" className="space-y-4 pt-2">
+        <SaleTerms listing={listing} />
         <SectionBlock
           title="Known Flaws"
           description="Transparent disclosures documented during the trust & safety review process."

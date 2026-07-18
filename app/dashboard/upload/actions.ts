@@ -11,6 +11,7 @@ export type UploadVehicleResult =
 
 const MAX_VEHICLE_IMAGES = 12;
 const AUCTION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+const SALE_LIGHTS = new Set(["green", "yellow", "red"]);
 
 function splitLines(value: string) {
   return value
@@ -26,6 +27,17 @@ function readString(formData: FormData, key: string) {
 
 function readInteger(formData: FormData, key: string) {
   const parsed = Number.parseInt(readString(formData, key).replace(/[$,\s]/g, ""), 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function readOptionalDecimal(formData: FormData, key: string) {
+  const value = readString(formData, key);
+
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -118,6 +130,10 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
   const location = readString(formData, "location");
   const reservePrice = readInteger(formData, "reservePrice");
   const shouldPublish = readString(formData, "listingIntent") === "publish";
+  const saleLight = readString(formData, "saleLight").toLowerCase();
+  const titleAvailability = readString(formData, "titleAvailability");
+  const conditionGrade = readOptionalDecimal(formData, "conditionGrade");
+  const sellerAnnouncements = readString(formData, "sellerAnnouncements");
 
   if (!year || !make || !model || !vin) {
     return { ok: false, message: "Year, make, model, and VIN are required." };
@@ -125,6 +141,18 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
 
   if (mileage === null || mileage < 0) {
     return { ok: false, message: "Enter a valid mileage." };
+  }
+
+  if (!SALE_LIGHTS.has(saleLight)) {
+    return { ok: false, message: "Choose sale terms for this listing." };
+  }
+
+  if (!["present", "absent", "pending"].includes(titleAvailability)) {
+    return { ok: false, message: "Choose the title availability." };
+  }
+
+  if (conditionGrade !== null && (conditionGrade < 0 || conditionGrade > 5)) {
+    return { ok: false, message: "Condition grade must be between 0.0 and 5.0." };
   }
 
   const vinAudit = await verifyVinWithVinAudit(vin);
@@ -190,6 +218,15 @@ export async function uploadVehicle(formData: FormData): Promise<UploadVehicleRe
     location: location || null,
     city_state: location || null,
     reserve_price: reservePrice && reservePrice > 0 ? reservePrice : null,
+    sale_light: saleLight,
+    condition_grade: conditionGrade,
+    title_present:
+      titleAvailability === "present"
+        ? true
+        : titleAvailability === "absent"
+          ? false
+          : null,
+    seller_announcements: splitLines(sellerAnnouncements).join("\n") || null,
     nmvtis_verified: vinAudit.verified,
     nmvtis_status: vinAudit.status,
     nmvtis_report_url: vinAudit.reportUrl,

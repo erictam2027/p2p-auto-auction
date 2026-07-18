@@ -70,6 +70,22 @@ const vehicleUploadSchema = z.object({
   titleStatus: z.string().trim().min(1, "Title status is required."),
   location: z.string().trim().optional(),
   reservePrice: z.string().trim().optional(),
+  saleLight: z.enum(["green", "yellow", "red"], {
+    message: "Choose sale terms.",
+  }),
+  titleAvailability: z.enum(["present", "absent", "pending"], {
+    message: "Choose title availability.",
+  }),
+  conditionGrade: z
+    .string()
+    .trim()
+    .optional()
+    .refine((value) => {
+      if (!value) return true;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed >= 0 && parsed <= 5;
+    }, "Enter a grade from 0.0 to 5.0."),
+  sellerAnnouncements: z.string().trim().optional(),
   highlights: z.string().trim().min(1, "Add at least one highlight."),
   knownFlaws: z.string().optional(),
 });
@@ -109,6 +125,10 @@ export function VehicleUploadForm() {
       titleStatus: "Clean title",
       location: "",
       reservePrice: "",
+      saleLight: "yellow",
+      titleAvailability: "pending",
+      conditionGrade: "",
+      sellerAnnouncements: "",
       highlights: "",
       knownFlaws: "",
     },
@@ -218,6 +238,10 @@ export function VehicleUploadForm() {
     formData.append("titleStatus", values.titleStatus);
     formData.append("location", values.location ?? "");
     formData.append("reservePrice", values.reservePrice ?? "");
+    formData.append("saleLight", values.saleLight);
+    formData.append("titleAvailability", values.titleAvailability);
+    formData.append("conditionGrade", values.conditionGrade ?? "");
+    formData.append("sellerAnnouncements", values.sellerAnnouncements ?? "");
     formData.append("highlights", values.highlights);
     formData.append("knownFlaws", values.knownFlaws ?? "");
     formData.append("listingIntent", listingIntent);
@@ -503,6 +527,97 @@ export function VehicleUploadForm() {
                       <textarea
                         className={textareaClassName}
                         placeholder="One flaw per line (optional)"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </section>
+
+            <section className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Sale Terms &amp; Disclosures</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  These seller-reported details appear alongside the listing so buyers can evaluate risk before bidding.
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <FormField
+                  control={form.control}
+                  name="saleLight"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sale terms</FormLabel>
+                      <FormControl>
+                        <Select
+                          className={inputClassName}
+                          value={field.value}
+                          onChange={(event) => field.onChange(event.target.value)}
+                        >
+                          <option value="green">Green - no known major defects</option>
+                          <option value="yellow">Yellow - disclosures apply</option>
+                          <option value="red">Red - sold as-is</option>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="titleAvailability"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title availability</FormLabel>
+                      <FormControl>
+                        <Select
+                          className={inputClassName}
+                          value={field.value}
+                          onChange={(event) => field.onChange(event.target.value)}
+                        >
+                          <option value="present">Title in possession</option>
+                          <option value="absent">Title not in possession</option>
+                          <option value="pending">Title status pending</option>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="conditionGrade"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Condition grade (optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="5"
+                          step="0.1"
+                          placeholder="0.0 - 5.0"
+                          className={inputClassName}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="sellerAnnouncements"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Seller announcements (optional)</FormLabel>
+                    <FormControl>
+                      <textarea
+                        className={textareaClassName}
+                        placeholder="One announcement per line, such as warning lights, title timing, or known mechanical concerns"
                         {...field}
                       />
                     </FormControl>

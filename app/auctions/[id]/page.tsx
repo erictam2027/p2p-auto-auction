@@ -117,6 +117,25 @@ function readBoolean(row: VehicleRow, keys: string[], fallback = false) {
   return fallback;
 }
 
+function readOptionalNumber(row: VehicleRow, keys: string[]) {
+  for (const key of keys) {
+    const value = row[key];
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  return null;
+}
+
 function vehicleToListing(
   vehicle: VehicleRow,
   highestBid: number,
@@ -153,6 +172,8 @@ function vehicleToListing(
   const nmvtisStatus = readString(vehicle, ["nmvtis_status", "nmvtisStatus"]);
   const nmvtisVerified = readBoolean(vehicle, ["nmvtis_verified", "nmvtisVerified"], false);
   const nmvtisReportUrl = readString(vehicle, ["nmvtis_report_url", "nmvtisReportUrl"]);
+  const titlePresent =
+    typeof vehicle.title_present === "boolean" ? vehicle.title_present : null;
 
   const vehicleHistory: VehicleHistoryEntry[] = [
     { label: "Title Status", value: titleStatus },
@@ -221,6 +242,14 @@ function vehicleToListing(
       "Pending verification",
     ),
     titleStatus,
+    saleLight: readString(vehicle, ["sale_light", "saleLight"]),
+    conditionGrade: readOptionalNumber(vehicle, ["condition_grade", "conditionGrade"]),
+    titlePresent,
+    sellerAnnouncements: readStringArray(
+      vehicle,
+      ["seller_announcements", "sellerAnnouncements"],
+      [],
+    ),
     highlights: readStringArray(vehicle, ["highlights", "equipment"], DEFAULT_HIGHLIGHTS),
     vehicleHistory,
     knownFlaws: readStringArray(vehicle, ["known_flaws", "knownFlaws"], DEFAULT_FLAWS),
@@ -243,7 +272,7 @@ async function getAuctionListing(id: string) {
   const { data: vehicle, error: vehicleError } = await supabase
     .from("vehicles")
     .select(
-      "id, year, make, model, trim, mileage, location, city_state, vin, seller_id, winner_id, image_url, image_urls, carfax_url, engine, transmission, drivetrain, exterior_color, interior_color, title_status, highlights, known_flaws, recent_service, modifications, equipment, dealer_notes, end_time, current_bid, status, reserve_price, nmvtis_verified, nmvtis_status, nmvtis_report_url, inspection_available, bid_count",
+      "id, year, make, model, trim, mileage, location, city_state, vin, seller_id, winner_id, image_url, image_urls, carfax_url, engine, transmission, drivetrain, exterior_color, interior_color, title_status, title_present, sale_light, condition_grade, seller_announcements, highlights, known_flaws, recent_service, modifications, equipment, dealer_notes, end_time, current_bid, status, reserve_price, nmvtis_verified, nmvtis_status, nmvtis_report_url, inspection_available, bid_count",
     )
     .eq("id", id)
     .single();

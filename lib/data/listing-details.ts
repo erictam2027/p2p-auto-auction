@@ -25,6 +25,10 @@ export type ListingDetail = TrendingAuction & {
   exteriorColor: string;
   interiorColor: string;
   titleStatus: string;
+  saleLight: string;
+  conditionGrade: number | null;
+  titlePresent: boolean | null;
+  sellerAnnouncements: string[];
   highlights: string[];
   vehicleHistory: VehicleHistoryEntry[];
   knownFlaws: string[];
@@ -106,6 +110,10 @@ function buildListing(auction: TrendingAuction): ListingDetail {
     exteriorColor: "Pending verification",
     interiorColor: "Pending verification",
     titleStatus: "Clean title verification pending",
+    saleLight: "",
+    conditionGrade: null,
+    titlePresent: null,
+    sellerAnnouncements: [],
     highlights: DEFAULT_EQUIPMENT,
     vehicleHistory: [
       ...DEFAULT_HISTORY,
