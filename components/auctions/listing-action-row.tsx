@@ -3,7 +3,7 @@
 import { toggleWatchlist } from "@/app/auctions/[id]/watchlist-actions";
 import { MessageSheet } from "@/components/messaging/MessageSheet";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff, MessageCircle } from "lucide-react";
+import { Bell, BellOff, MessageCircle, Share2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -47,9 +47,27 @@ export function ListingActionRow({
     setMessageOpen(true);
   }
 
+  async function handleShareListing() {
+    const url = `${window.location.origin}/auctions/${vehicleId}`;
+    const title = sellerName ? `${sellerName} listing on ApexAuction` : "ApexAuction listing";
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, url });
+        return;
+      }
+
+      await navigator.clipboard.writeText(url);
+      toast.success("Listing link copied.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast.error("Unable to share this listing.");
+    }
+  }
+
   return (
     <>
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="grid gap-3 sm:grid-cols-3">
         <Button
           type="button"
           variant="outline"
@@ -68,6 +86,15 @@ export function ListingActionRow({
         >
           <MessageCircle className="size-4" />
           Message Seller
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void handleShareListing()}
+          className="h-11 border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
+        >
+          <Share2 className="size-4" />
+          Share Listing
         </Button>
       </div>
 

@@ -58,6 +58,29 @@ export async function rejectDealer(userId: string) {
   revalidatePath("/admin");
 }
 
+export async function updateSupportTicketStatus(
+  ticketId: string,
+  status: "new" | "in_progress" | "resolved",
+) {
+  await assertAdmin();
+
+  const admin = createAdminClient();
+  if (!admin) {
+    throw new Error("Marketplace operations are not configured.");
+  }
+
+  const { error } = await admin
+    .from("support_tickets")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", ticketId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin");
+}
+
 export async function forceCloseAuction(vehicleId: string) {
   await assertAdmin();
 

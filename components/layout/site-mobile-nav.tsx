@@ -53,6 +53,13 @@ export function SiteMobileNav({
           >
             Browse Auctions
           </Link>
+          <Link
+            href="/contact"
+            onClick={() => setOpen(false)}
+            className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Contact &amp; Support
+          </Link>
           {isSignedIn ? (
             <>
               <Link

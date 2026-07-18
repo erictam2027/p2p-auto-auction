@@ -4,6 +4,7 @@ import { CountdownTimer } from "@/components/auctions/CountdownTimer";
 import { HomeAuctionGrid } from "@/components/auctions/home-auction-grid";
 import { SeedTestVehicleButton } from "@/components/dev/seed-test-vehicle-button";
 import { SiteHeader } from "@/components/layout/site-header";
+import { MarketplaceSignup } from "@/components/marketing/marketplace-signup";
 import { TrustBadgeGroup } from "@/components/trust/trust-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -207,6 +208,8 @@ export default async function Home({ searchParams }: HomePageProps) {
         </section>
       </main>
 
+      <MarketplaceSignup />
+
       <footer className="mt-auto border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <p className="text-sm text-slate-600">
@@ -221,6 +224,9 @@ export default async function Home({ searchParams }: HomePageProps) {
             </Link>
             <Link href="/trust-safety" className="hover:text-slate-900">
               Trust & Safety
+            </Link>
+            <Link href="/contact" className="hover:text-slate-900">
+              Contact
             </Link>
           </div>
         </div>

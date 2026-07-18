@@ -1,5 +1,9 @@
 import { ForceCloseButton } from "@/components/admin/force-close-button";
 import { DealerTable } from "@/components/admin/DealerTable";
+import {
+  SupportTicketTable,
+  type SupportTicketRow,
+} from "@/components/admin/support-ticket-table";
 import { SiteHeader } from "@/components/layout/site-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -94,6 +98,33 @@ export default async function AdminPage() {
   }
 
   const pendingProfiles = await getPendingDealerProfiles();
+  const adminClient = createAdminClient();
+  const operationsClient = adminClient ?? supabase;
+
+  const [{ data: supportTickets }, { data: marketingLeads }] = await Promise.all([
+    operationsClient
+      .from("support_tickets")
+      .select("id, name, email, phone, topic, message, status, created_at")
+      .neq("status", "resolved")
+      .order("created_at", { ascending: false })
+      .limit(12),
+    operationsClient
+      .from("marketing_leads")
+      .select("id, email, interest, created_at")
+      .order("created_at", { ascending: false })
+      .limit(8),
+  ]);
+
+  const supportQueue: SupportTicketRow[] = (supportTickets ?? []).map((ticket) => ({
+    id: ticket.id,
+    name: ticket.name,
+    email: ticket.email,
+    phone: ticket.phone,
+    topic: ticket.topic,
+    message: ticket.message,
+    status: ticket.status as SupportTicketRow["status"],
+    createdAt: ticket.created_at,
+  }));
 
   const { data: liveListings } = await supabase
     .from("vehicles")
@@ -145,6 +176,49 @@ export default async function AdminPage() {
             <DealerTable profiles={pendingProfiles} />
           </CardContent>
         </Card>
+
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <Card className="border-slate-200 bg-white shadow-sm">
+            <CardHeader className="border-b border-slate-200 pb-5">
+              <CardTitle className="text-lg font-semibold text-slate-900">Support Queue</CardTitle>
+              <CardDescription className="mt-1 text-slate-600">
+                Public contact requests that need an owner response.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-5">
+              {supportQueue.length > 0 ? (
+                <SupportTicketTable tickets={supportQueue} />
+              ) : (
+                <p className="text-sm text-slate-600">No open support requests.</p>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="border-slate-200 bg-white shadow-sm">
+            <CardHeader className="border-b border-slate-200 pb-5">
+              <CardTitle className="text-lg font-semibold text-slate-900">Audience Leads</CardTitle>
+              <CardDescription className="mt-1 text-slate-600">
+                Recent marketplace subscribers and dealer interest.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <p className="text-3xl font-semibold text-slate-900">{(marketingLeads ?? []).length}</p>
+              <p className="mt-1 text-sm text-slate-600">Recent captured leads</p>
+              <div className="mt-5 space-y-3">
+                {(marketingLeads ?? []).map((lead) => (
+                  <div key={lead.id}>
+                    <p className="truncate text-sm font-medium text-slate-900">{lead.email}</p>
+                    <p className="mt-0.5 text-xs capitalize text-slate-500">
+                      {lead.interest.replaceAll("_", " ")}
+                    </p>
+                  </div>
+                ))}
+                {(marketingLeads ?? []).length === 0 ? (
+                  <p className="text-sm text-slate-600">Alert signups will appear here.</p>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
         <Card className="border-slate-200 bg-white shadow-sm">
           <CardHeader className="border-b border-slate-200 pb-6">

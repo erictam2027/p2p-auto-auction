@@ -54,6 +54,12 @@ export async function SiteHeader() {
             >
               Sell
             </Link>
+            <Link
+              href="/contact"
+              className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
+            >
+              Support
+            </Link>
             {isVerifiedDealerUser ? (
               <Link
                 href="/dashboard"
