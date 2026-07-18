@@ -84,6 +84,7 @@ export function ProfileBidsTable({ bids }: ProfileBidsTableProps) {
 
 export type ProfileWonAuctionRow = {
   id: string;
+  transactionId: string | null;
   title: string;
   amountCents: number;
   endedAt: string;
@@ -137,10 +138,10 @@ export function ProfileWonAuctionsTable({ auctions }: ProfileWonAuctionsTablePro
                     {getPlatformFeeStatusLabel(auction.platformFeeStatus)}
                   </Badge>
                   <Link
-                    href={`/auctions/${auction.id}`}
+                    href={auction.transactionId ? `/transactions/${auction.transactionId}` : `/auctions/${auction.id}`}
                     className="text-xs font-medium text-slate-900 underline-offset-4 hover:underline"
                   >
-                    Complete checkout
+                    {auction.transactionId ? "Open workspace" : "Complete checkout"}
                   </Link>
                 </div>
               </TableCell>

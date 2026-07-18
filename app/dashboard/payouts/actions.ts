@@ -1,22 +1,44 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
 export type EscrowSellerActionResult =
   | { ok: true }
   | { ok: false; message: string };
 
-export async function markEscrowCompleted(
-  vehicleId: string,
-): Promise<EscrowSellerActionResult> {
+async function assertAdmin() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { ok: false, message: "You must be signed in." };
+    return { supabase, user: null, isAdmin: false };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  return { supabase, user, isAdmin: profile?.role === "admin" };
+}
+
+export async function markEscrowCompleted(
+  vehicleId: string,
+): Promise<EscrowSellerActionResult> {
+  const { isAdmin } = await assertAdmin();
+
+  if (!isAdmin) {
+    return { ok: false, message: "Only marketplace operations can complete escrow." };
+  }
+
+  const supabase = createAdminClient();
+  if (!supabase) {
+    return { ok: false, message: "Marketplace operations are not configured." };
   }
 
   const { data: escrow, error } = await supabase
@@ -27,10 +49,6 @@ export async function markEscrowCompleted(
 
   if (error || !escrow) {
     return { ok: false, message: "Escrow record not found." };
-  }
-
-  if (escrow.seller_id !== user.id) {
-    return { ok: false, message: "Only the seller can mark escrow complete." };
   }
 
   if (escrow.status !== "payment_received" && escrow.status !== "checkout_started") {
@@ -61,20 +79,16 @@ export async function markEscrowCompleted(
 export async function markEscrowPaymentReceived(
   vehicleId: string,
 ): Promise<EscrowSellerActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { isAdmin } = await assertAdmin();
 
-  if (!user) {
-    return { ok: false, message: "You must be signed in." };
+  if (!isAdmin) {
+    return { ok: false, message: "Only marketplace operations can confirm escrow funds." };
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
+  const supabase = createAdminClient();
+  if (!supabase) {
+    return { ok: false, message: "Marketplace operations are not configured." };
+  }
 
   const { data: escrow } = await supabase
     .from("escrow_transactions")
@@ -84,15 +98,6 @@ export async function markEscrowPaymentReceived(
 
   if (!escrow) {
     return { ok: false, message: "Escrow record not found." };
-  }
-
-  const isParticipant =
-    escrow.seller_id === user.id ||
-    escrow.buyer_id === user.id ||
-    profile?.role === "admin";
-
-  if (!isParticipant) {
-    return { ok: false, message: "Not authorized." };
   }
 
   const { error } = await supabase

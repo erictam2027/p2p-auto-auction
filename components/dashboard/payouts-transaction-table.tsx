@@ -1,4 +1,4 @@
-import { EscrowOpsButtons } from "@/components/dashboard/escrow-ops-buttons";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -53,12 +53,12 @@ export function PayoutsTransactionTable({
                 </Badge>
               </TableCell>
               <TableCell>
-                {tx.vehicleId && tx.escrowStatus ? (
-                  <EscrowOpsButtons
-                    vehicleId={tx.vehicleId}
-                    status={tx.escrowStatus}
-                  />
-                ) : null}
+                <Link
+                  href={`/transactions/${tx.id}`}
+                  className="text-sm font-medium text-slate-900 underline-offset-4 hover:underline"
+                >
+                  Open workspace
+                </Link>
               </TableCell>
             </TableRow>
           ))}

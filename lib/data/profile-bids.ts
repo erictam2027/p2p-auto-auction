@@ -144,6 +144,7 @@ export async function fetchProfileWonAuctions(userId: string): Promise<ProfileWo
 
     return {
       id: vehicle.id,
+      transactionId: escrow?.id ?? null,
       title: `${vehicle.year ?? ""} ${vehicle.make ?? "Vehicle"} ${vehicle.model ?? "Listing"}`.trim(),
       amountCents: (vehicle.current_bid ?? 0) * 100,
       endedAt: formatEndedDate(vehicle.end_time),
