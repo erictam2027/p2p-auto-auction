@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { getSiteUrlPath } from "@/lib/site-url";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -34,7 +35,7 @@ export function ForgotPasswordForm({ error }: { error?: string }) {
     const supabase = createClient();
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email,
-      { redirectTo: "http://localhost:3000/reset-password" },
+      { redirectTo: getSiteUrlPath("/reset-password") },
     );
 
     setIsSubmitting(false);
